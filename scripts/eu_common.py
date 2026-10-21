@@ -130,7 +130,7 @@ def http(url, accept=None, tries=4, timeout=120):
             with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as r:
                 return r.status, r.headers.get("Content-Type", ""), r.read()
         except urllib.error.HTTPError as exc:
-            if exc.code in (404, 406):
+            if exc.code in (300, 404, 406):
                 return exc.code, "", b""
             last = exc
         except Exception as exc:

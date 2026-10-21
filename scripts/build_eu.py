@@ -98,6 +98,14 @@ def texte_html(celex):
 
 
 def traiter(celex, meta):
+    try:
+        return _traiter(celex, meta)
+    except Exception as exc:
+        log("  %s : erreur %r" % (celex, exc))
+        return celex, meta.get(celex, {}), None, None
+
+
+def _traiter(celex, meta):
     m = meta.get(celex, {})
     typ = m.get("type") or ""
     version = None if typ in ("JUDG", "ORDER", "OPIN_AG") else derniere_consolidation(celex)
