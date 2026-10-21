@@ -107,6 +107,8 @@ def main():
     ap.add_argument("--garder", action="store_true", help="conserver les archives téléchargées")
     a = ap.parse_args()
 
+    if not os.path.exists(a.db):
+        sys.exit("Base absente : %s (lancer build_juri.py ou install.py d'abord)" % a.db)
     con = jc.open_db(a.db)
     con.execute("PRAGMA synchronous=NORMAL")
     for base in a.bases:
