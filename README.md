@@ -1,74 +1,128 @@
-# Droit français, sourcé
+<div align="center">
 
-Recherche dans le droit français officiel (Légifrance open data de la DILA) où chaque affirmation est sourcée : article, identifiant Légifrance, lien et date de version.
+# Droit français sourcé : serveur MCP pour Claude et ChatGPT
 
-- **Législation** : codes, lois, décrets et arrêtés consolidés avec toutes leurs versions datées (LEGI), Journal officiel tel que publié (JORF), conventions collectives (KALI).
-- **Jurisprudence** : Conseil d'État et juridictions administratives (JADE), Cour de cassation (CASS, INCA), cours d'appel (CAPP), Conseil constitutionnel (CONSTIT), CNIL.
+**Le droit français et européen officiel dans votre assistant IA, chaque réponse sourcée article par article.**
 
-Le projet existe sous deux formes :
+Codes, lois, Journal officiel, conventions collectives, jurisprudence (Conseil d'État, Cour de cassation, Conseil constitutionnel, CNIL) et droit de l'Union européenne (EUR-Lex), en données ouvertes, gratuit et sans inscription.
 
-1. un **serveur MCP public** à ajouter dans Claude ou ChatGPT, sans rien installer ;
-2. un **skill Claude Code** qui interroge des bases SQLite locales.
+[![Serveur en ligne](https://img.shields.io/website?url=https%3A%2F%2Fdroit.studjoow.com%2Fping&label=droit.studjoow.com&up_message=en%20ligne&down_message=hors%20ligne)](https://droit.studjoow.com)
+[![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-1d3557)](https://modelcontextprotocol.io)
+[![Données](https://img.shields.io/badge/donn%C3%A9es-DILA%20%2B%20EUR--Lex-b8860b)](https://echanges.dila.gouv.fr/OPENDATA/)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-2e7d32)](LICENSE)
+[![Un projet Studjoow](https://img.shields.io/badge/un%20projet-Studjoow-111418)](https://studjoow.com)
 
-> **Information juridique, pas conseil.** Les réponses résument ce que disent les textes et les décisions de la base. La version qui fait foi est celle publiée sur [Légifrance](https://www.legifrance.gouv.fr). Pour un cas concret, consultez un avocat ou un professionnel du droit.
+**[droit.studjoow.com](https://droit.studjoow.com)** · [Ajouter en 30 secondes](#en-30-secondes) · [Outils](#les-11-outils) · [Héberger soi-même](#héberger-son-propre-serveur) · [FAQ](#questions-fréquentes)
+
+</div>
+
+---
+
+## Pourquoi ce projet
+
+Les assistants IA répondent souvent sur le droit de mémoire : articles renumérotés, versions périmées, arrêts inventés. Ce serveur MCP les oblige à **chercher dans les textes officiels avant de répondre** et à **citer chaque source** : identifiant Légifrance ou CELEX, lien direct et date de la version utilisée. Un outil de vérification signale toute référence introuvable ou toute citation qui ne figure pas mot pour mot dans le texte.
+
+Exemple de réponse attendue :
+
+> L'article 1240 du Code civil pose le principe de la responsabilité pour faute : « Tout fait quelconque de l'homme, qui cause à autrui un dommage, oblige celui par la faute duquel il est arrivé à le réparer » (Code civil, art. 1240).
+>
+> **Sources**
+> Code civil, art. 1240 (version du 2016-10-01 à ce jour, VIGUEUR) [LEGIARTI000032041571] https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000032041571
+
+> **Information juridique, pas conseil.** Les réponses résument ce que disent les textes et les décisions. La version qui fait foi est celle publiée sur [Légifrance](https://www.legifrance.gouv.fr) ou [EUR-Lex](https://eur-lex.europa.eu). Pour un cas concret, consultez un avocat.
 
 ## En 30 secondes
 
-Adresse du serveur : **`https://droit.studjoow.com/mcp`** (mise en ligne en cours)
+Adresse du serveur : **`https://droit.studjoow.com/mcp`** (sans authentification)
 
-### Dans Claude (claude.ai ou application de bureau)
+### Dans Claude (claude.ai, application de bureau ou mobile)
 
 1. Ouvrir **Paramètres**, puis **Connecteurs**.
 2. Cliquer sur **Ajouter un connecteur personnalisé**.
 3. Nom : `Droit français` ; URL : `https://droit.studjoow.com/mcp`. Pas d'authentification.
-4. Dans une conversation, activer le connecteur (menu des outils) et poser la question : « Que dit l'article 1240 du Code civil ? ».
+4. Dans une conversation, activer le connecteur et demander : « Que dit l'article 1240 du Code civil ? »
 
 ### Dans ChatGPT
 
-1. Ouvrir **Paramètres**, puis **Applications et connecteurs** (selon l'offre, il faut activer le **mode développeur** dans les paramètres avancés).
-2. **Créer** un connecteur : nom `Droit français`, URL `https://droit.studjoow.com/mcp`, authentification **aucune**.
-3. Dans une conversation, choisir le connecteur dans le menu des outils.
+1. Ouvrir **Paramètres**, puis **Applications et connecteurs**.
+2. Selon l'offre, activer le **mode développeur** dans les paramètres avancés.
+3. **Créer** un connecteur : nom `Droit français`, URL `https://droit.studjoow.com/mcp`, authentification **aucune**.
+4. Dans une conversation, choisir le connecteur dans le menu des outils.
 
-### Limites honnêtes
+### Dans un client MCP local (Claude Code, Cursor, VS Code...)
 
-- Serveur **gratuit, sans garantie** de disponibilité ni de résultat ; il peut être lent, limité ou arrêté.
-- Limite de **60 requêtes par minute** par adresse IP.
-- Base à jour du **<DATE_BASE>** (dumps DILA du 13/07/2025 plus les mises à jour quotidiennes). L'outil `etat_base` donne la date exacte du dernier incrément appliqué.
-- Jurisprudence **non exhaustive** : seules les décisions diffusées par la DILA y figurent. Les cours d'appel (CAPP) s'arrêtent fin 2023. Environ 17 000 délibérations CNIL n'ont pas de texte (non communicables). Quelques dates aberrantes existent dans les sources (ex. 2999-01-01).
-- **Information juridique, pas conseil.**
+```json
+{
+  "mcpServers": {
+    "droit-francais": { "type": "http", "url": "https://droit.studjoow.com/mcp" }
+  }
+}
+```
 
-## Les outils du serveur
+Avec Claude Code : `claude mcp add --transport http droit-francais https://droit.studjoow.com/mcp`
+
+## Ce que contient la base
+
+| Domaine | Sources | Détail |
+|---|---|---|
+| Législation consolidée | LEGI | Codes, lois, ordonnances, décrets, arrêtés, **toutes les versions datées** de chaque article |
+| Journal officiel | JORF | Textes tels que publiés au JO |
+| Conventions collectives | KALI | Conventions, accords et avenants, recherche par **IDCC** |
+| Juridictions administratives | JADE | Conseil d'État, cours administratives d'appel, tribunaux administratifs |
+| Juridictions judiciaires | CASS, INCA, CAPP | Cour de cassation (publiés et inédits), cours d'appel |
+| Contrôle de constitutionnalité | CONSTIT | Décisions du Conseil constitutionnel (DC, QPC...) |
+| Protection des données | CNIL | Délibérations de la CNIL |
+| Droit de l'Union européenne | EUR-Lex (API Cellar) | Règlements et directives en vigueur (version consolidée), traités, Charte des droits fondamentaux, arrêts de la Cour de justice et du Tribunal, en français |
+
+Les bases françaises sont reconstruites à partir des dumps officiels de la DILA et mises à jour **chaque nuit** avec les fichiers incrémentaux publiés par la DILA. L'outil `etat_base` donne la date du dernier incrément appliqué.
+
+## Les 11 outils
 
 | Outil | Rôle |
 |---|---|
-| `lire_article` | Texte d'un article à une date donnée (« Code civil », « 1240 », « 2020-01-01 ») |
-| `rechercher_loi` | Recherche plein texte dans LEGI, KALI, JORF ou tout |
+| `lire_article` | Texte d'un article de code ou de loi à une date donnée (« Code civil », « 1240 », « 2020-01-01 ») |
+| `rechercher_loi` | Recherche plein texte dans LEGI, KALI, JORF ou tout, à une date donnée |
 | `lire_texte` | Fiche et plan d'un texte : identifiant, NOR, IDCC ou nom |
 | `lister_codes` | Liste des codes |
-| `rechercher_jurisprudence` | Recherche de décisions (mots, juridiction, numéro, ECLI, dates) |
+| `rechercher_jurisprudence` | Décisions par mots, juridiction, formation, numéro de pourvoi, ECLI ou dates |
 | `lire_decision` | Texte intégral d'une décision |
 | `verifier_references` | Contrôle qu'une référence existe et qu'une citation y figure mot pour mot |
+| `lire_texte_ue` | Acte de l'UE article par article (CELEX, « RGPD », « règlement (UE) 2024/1689 ») ou arrêt (« C-131/12 ») |
+| `rechercher_droit_ue` | Recherche plein texte dans les règlements, directives, traités et la Charte |
+| `rechercher_jurisprudence_ue` | Recherche dans les arrêts de la CJUE et du Tribunal |
 | `etat_base` | Comptes et date de mise à jour de chaque base |
 
-Le serveur impose un protocole de sourçage au modèle : chercher avant de répondre, croiser loi et jurisprudence, prendre la version à la date des faits, vérifier chaque référence, citer la source après chaque affirmation, terminer par un bloc « Sources », dire ce que la base ne contient pas.
+### Protocole de sourçage imposé au modèle
 
-## Skill Claude Code (bases locales)
+1. Chercher avant de répondre, jamais de mémoire.
+2. Croiser la loi applicable et la jurisprudence qui l'interprète.
+3. Prendre la version du texte en vigueur à la date des faits.
+4. Vérifier chaque référence avec `verifier_references` avant de la citer.
+5. Citer la source juste après chaque affirmation : (Code du travail, art. L1237-1), (Cass. soc., 12 juillet 2023, n° 21-21.185), (RGPD, art. 17), (CJUE, C-131/12).
+6. Terminer par un bloc « Sources » avec identifiants et liens.
+7. Dire clairement ce que la base ne contient pas.
+
+## Limites
+
+- Service **gratuit, sans garantie** de disponibilité ni d'exactitude ; il peut être lent, limité ou arrêté.
+- Limite de **60 requêtes par minute** par adresse IP.
+- Jurisprudence **non exhaustive** : seules les décisions diffusées en open data y figurent. Les cours d'appel (CAPP) s'arrêtent fin 2023. Environ 17 000 délibérations CNIL n'ont pas de texte (non communicables). Une partie des arrêts du Tribunal de l'UE n'existe pas en texte français. Quelques dates aberrantes existent dans les sources (ex. 2999-01-01).
+- Les versions consolidées du droit de l'UE n'ont **pas de valeur officielle**.
+- **Information juridique, pas conseil.**
+
+## Skill Claude Code (bases locales, hors ligne)
+
+Le même moteur fonctionne en local, sans serveur, comme skill Claude Code :
 
 ```bash
 git clone https://github.com/JohnJackHouzi/droit-francais-skill ~/.claude/skills/droit-francais
-```
-
-Il faut ensuite construire les bases (environ 30 Go au final, 40 Go libres pendant la construction) :
-
-```bash
 cd ~/.claude/skills/droit-francais
-python3 -I scripts/install.py              # télécharge, construit, supprime les XML, base par base
-python3 -I scripts/update_legi.py          # incrémentaux LEGI, JORF, KALI
-python3 -I scripts/update_juri.py          # incrémentaux jurisprudence
-python3 -I scripts/etat.py                 # état des bases
+python3 -I scripts/install.py          # télécharge, construit, supprime les XML, base par base
+python3 -I scripts/build_eu.py         # droit de l'UE, périmètre de départ (quelques Mo)
+python3 -I scripts/etat.py             # état des bases
 ```
 
-Les bases vont dans `~/droit-francais-data/` (variable `DROIT_DATA` pour changer). Aucune dépendance Python en dehors de la bibliothèque standard pour les scripts ; `SKILL.md` décrit le protocole de réponse et toutes les commandes.
+Prévoir environ **30 Go** pour les bases finales et **40 Go libres** pendant la construction. Les scripts n'utilisent que la bibliothèque standard de Python. Les bases vont dans `~/droit-francais-data/` (variable `DROIT_DATA`). `SKILL.md` décrit le protocole de réponse et toutes les commandes (`search_legi.py`, `search_juri.py`, `search_eu.py`, `verify.py`, `update_legi.py`, `update_juri.py`).
 
 ## Héberger son propre serveur
 
@@ -77,15 +131,20 @@ docker compose up -d --build
 curl http://localhost:8000/health     # 503 tant que les bases ne sont pas prêtes, 200 ensuite
 ```
 
-Au premier démarrage, le conteneur télécharge les dumps DILA un par un dans le volume `/data`, les indexe, supprime archives et XML après chaque base et s'arrête si l'espace libre passe sous 15 Go. Prévoir **80 Go libres** (100 Go confortables) et quelques heures. Ensuite, les incrémentaux DILA sont appliqués chaque jour à 3 h UTC.
+Au premier démarrage, le conteneur télécharge les dumps DILA un par un dans le volume `/data`, les indexe, supprime archives et XML après chaque base et s'arrête si l'espace libre passe sous 15 Go. Prévoir **80 Go libres** et quelques heures, ou envoyer des bases déjà construites (voir plus bas). Les incrémentaux DILA sont ensuite appliqués chaque jour à 3 h UTC.
 
-Pendant l'installation, `/health` et `/mcp` répondent 503 ; `/ping` répond toujours 200 (sonde de vie du conteneur).
-
-Variables utiles :
+| Adresse | Rôle |
+|---|---|
+| `/mcp` | Serveur MCP (Streamable HTTP, sans état) |
+| `/` | Page d'accueil (mode d'emploi, état des bases) |
+| `/health` | État des bases en JSON : 200 si prêtes, 503 sinon |
+| `/ping` | Sonde de vie du conteneur |
+| `/llms.txt` | Résumé pour les moteurs de réponse IA |
 
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `DROIT_ALLOWED_HOSTS` | vide | Domaine(s) public(s) acceptés, ex. `droit.exemple.fr` (protection DNS rebinding) |
+| `DROIT_PUBLIC_URL` | `https://droit.studjoow.com` | Adresse publique utilisée par la page d'accueil |
 | `DROIT_RATE_PER_MIN` | 60 | Requêtes par minute et par IP |
 | `DROIT_TRUSTED_PROXIES` | 1 | Nombre de proxys devant le serveur (IP lue dans `X-Forwarded-For`) |
 | `DROIT_AUTO_INSTALL` | 1 | 0 : ne pas télécharger les dumps (bases envoyées par rsync) |
@@ -93,16 +152,36 @@ Variables utiles :
 | `DROIT_UPDATE_HOUR_UTC` | 3 | Heure de la mise à jour quotidienne |
 | `DROIT_MIN_FREE_GO` | 15 | Seuil d'arrêt de l'installation |
 
-**Alternative à l'installation automatique** : construire les bases sur une autre machine puis les envoyer dans le volume, conteneur arrêté :
+**Envoyer des bases déjà construites** plutôt que de les construire sur le serveur (conseillé sur une petite machine) :
 
 ```bash
-rsync -avP --inplace legi.sqlite juri.sqlite serveur:/chemin/du/volume/
+rsync -a --partial --inplace legi.sqlite juri.sqlite eu.sqlite serveur:/chemin/du/volume/
 ```
 
 puis démarrer avec `DROIT_AUTO_INSTALL=0`.
 
+## Questions fréquentes
+
+**Qu'est-ce qu'un serveur MCP ?**
+Le Model Context Protocol est un standard ouvert qui permet à un assistant IA (Claude, ChatGPT, Cursor...) d'appeler des outils externes. Ici, ces outils interrogent les bases officielles du droit français et européen.
+
+**Les réponses sont-elles fiables ?**
+Chaque référence peut être vérifiée par `verifier_references`, qui signale une référence introuvable ou une citation absente du texte. Cela réduit fortement les inventions, sans remplacer la lecture du texte officiel ni l'avis d'un professionnel.
+
+**Mes questions sont-elles enregistrées ?**
+Le serveur ne garde ni compte ni historique des questions ; il reçoit seulement les recherches envoyées par l'assistant. Les journaux techniques du serveur web (adresse IP, heure, code de réponse) servent à la limite de débit et au diagnostic.
+
+**Puis-je l'utiliser dans un produit ?**
+Le code est sous licence MIT. Les données restent soumises à la Licence Ouverte 2.0 (DILA) et aux conditions de réutilisation d'EUR-Lex. Pour un usage intensif, hébergez votre propre serveur.
+
 ## Sources et licences
 
-- Données : **DILA**, Légifrance open data (LEGI, JORF, KALI, JADE, CASS, CAPP, INCA, CONSTIT, CNIL), [echanges.dila.gouv.fr/OPENDATA](https://echanges.dila.gouv.fr/OPENDATA/), sous **Licence Ouverte 2.0** (Etalab). Les bases construites sont des données dérivées et restent soumises à cette licence ; elles ne sont pas incluses dans ce dépôt.
-- Code : licence **MIT** (voir `LICENSE`).
-- Ce projet n'est ni édité ni approuvé par la DILA ou Légifrance.
+- Données françaises : **DILA**, Légifrance open data (LEGI, JORF, KALI, JADE, CASS, CAPP, INCA, CONSTIT, CNIL), [echanges.dila.gouv.fr/OPENDATA](https://echanges.dila.gouv.fr/OPENDATA/), sous **Licence Ouverte 2.0** (Etalab).
+- Droit de l'Union : **EUR-Lex**, Office des publications de l'Union européenne, via l'[API Cellar](https://op.europa.eu/fr/web/cellar).
+- Les bases construites sont des données dérivées soumises aux mêmes licences ; elles ne sont pas incluses dans ce dépôt.
+- Code : licence **MIT** (voir [`LICENSE`](LICENSE)).
+- Ce projet n'est ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne.
+
+## Un projet Studjoow
+
+Conçu et maintenu par **[Studjoow](https://studjoow.com)**, studio créatif et tech (sites sur mesure, branding, IA, SEO et GEO), Paris et Tel-Aviv. Une idée, un bug, un besoin d'intégration du droit dans votre produit : [ouvrez une issue](https://github.com/JohnJackHouzi/droit-francais-skill/issues) ou contactez le studio via [studjoow.com](https://studjoow.com).

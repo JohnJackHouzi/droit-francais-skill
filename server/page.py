@@ -5,6 +5,8 @@ import time
 
 SITE = os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("/")
 REPO = "https://github.com/JohnJackHouzi/droit-francais-skill"
+STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#org", "name": "Studjoow", "url": "https://studjoow.com",
+          "description": "Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO. Paris et Tel-Aviv."}
 TITRE = "Droit français sourcé : serveur MCP gratuit pour Claude et ChatGPT"
 DESCRIPTION = ("Ajoutez le droit français et européen officiel à Claude ou ChatGPT en 30 secondes : codes, lois, "
                "Journal officiel, conventions collectives, jurisprudence et EUR-Lex, chaque réponse sourcée "
@@ -94,13 +96,15 @@ def nombre(n):
 
 def json_ld():
     graph = [
+        STUDIO,
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "Droit français sourcé",
-         "inLanguage": "fr-FR", "description": DESCRIPTION},
+         "inLanguage": "fr-FR", "description": DESCRIPTION, "publisher": {"@id": "https://studjoow.com/#org"}},
         {"@type": "SoftwareApplication", "@id": SITE + "/#app", "name": "Serveur MCP Droit français",
          "applicationCategory": "DeveloperApplication", "operatingSystem": "Tous (service web)",
          "url": SITE + "/", "installUrl": SITE + "/mcp", "softwareHelp": REPO, "codeRepository": REPO,
          "license": "https://opensource.org/licenses/MIT", "inLanguage": "fr-FR", "isAccessibleForFree": True,
          "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+         "author": {"@id": "https://studjoow.com/#org"}, "publisher": {"@id": "https://studjoow.com/#org"},
          "description": DESCRIPTION,
          "featureList": [o[1] for o in OUTILS]},
         {"@type": "Dataset", "name": "Droit français et européen (données ouvertes DILA et EUR-Lex)",
@@ -132,6 +136,8 @@ a{color:var(--accent)}code{font:15px ui-monospace,SFMono-Regular,Menlo,monospace
 .url{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:20px 0}
 .url code{font-size:17px;word-break:break-all;flex:1;min-width:200px}
 button{font:inherit;font-size:15px;border:0;border-radius:8px;padding:8px 14px;background:var(--accent);color:var(--bg);cursor:pointer}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.marque{font-size:14px;font-weight:600;text-decoration:none;color:var(--muted)}
 .etat{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted)}
 .pt{width:10px;height:10px;border-radius:50%;background:var(--warn)}.pt.ok{background:var(--ok)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
@@ -181,13 +187,14 @@ def render(etat_fn):
 <meta property="og:description" content="%(desc)s">
 <meta property="og:url" content="%(site)s/">
 <meta name="twitter:card" content="summary">
+<meta name="author" content="Studjoow">
 <script type="application/ld+json">%(ld)s</script>
 <style>%(css)s</style>
 </head>
 <body>
 <main>
 <header>
-<p class="etat">%(etat)s</p>
+<p class="top"><a href="https://studjoow.com" class="marque">Un projet Studjoow</a><span class="etat">%(etat)s</span></p>
 <h1>Le droit français officiel, sourcé, dans Claude et ChatGPT</h1>
 <p class="lead">Un serveur MCP gratuit qui fait chercher votre assistant dans les codes, les lois, le Journal officiel, les conventions collectives, la jurisprudence et le droit européen avant de répondre. Chaque affirmation est suivie de sa source : article, identifiant Légifrance ou CELEX, lien et date de version.</p>
 </header>
@@ -224,6 +231,7 @@ def render(etat_fn):
 <footer>
 <p>Données : DILA, Légifrance open data, sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0</a> ; EUR-Lex, Office des publications de l'Union européenne. Ce service n'est ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne.</p>
 <p>Code libre (licence MIT) : <a href="%(repo)s">%(repo_court)s</a>. État technique : <a href="/health">/health</a>.</p>
+<p>Conçu et maintenu par <a href="https://studjoow.com">Studjoow</a>, studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO. Paris et Tel-Aviv.</p>
 </footer>
 </main>
 </body>
@@ -271,6 +279,7 @@ def llms(etat_fn):
         "## Liens",
         "- Code source : %s" % REPO,
         "- État des bases : %s/health" % SITE,
+        "- Conçu et maintenu par Studjoow, studio créatif et tech : https://studjoow.com",
         "",
     ]
     return "\n".join(lignes)
