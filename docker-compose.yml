@@ -1,0 +1,15 @@
+services:
+  droit-francais:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DROIT_RATE_PER_MIN: "60"
+      DROIT_ALLOWED_HOSTS: ${DROIT_ALLOWED_HOSTS:-}
+      DROIT_AUTO_INSTALL: ${DROIT_AUTO_INSTALL:-1}
+      DROIT_AUTO_UPDATE: ${DROIT_AUTO_UPDATE:-1}
+    volumes:
+      - ${DROIT_VOLUME:-droit-data}:/data
+volumes:
+  droit-data:

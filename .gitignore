@@ -1,0 +1,13 @@
+*.sqlite
+*.sqlite-*
+*.tar.gz
+*.xml
+*.dat
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+MEGAPROMPT-*.md
+/data/

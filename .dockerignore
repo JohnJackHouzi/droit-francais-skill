@@ -1,0 +1,7 @@
+**/.venv
+**/__pycache__
+*.sqlite*
+*.tar.gz
+*.xml
+.git
+MEGAPROMPT-deploiement.md
