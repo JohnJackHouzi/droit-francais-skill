@@ -100,7 +100,7 @@ def json_ld():
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "Droit français sourcé",
          "inLanguage": "fr-FR", "description": DESCRIPTION, "publisher": {"@id": "https://studjoow.com/#org"}},
         {"@type": "SoftwareApplication", "@id": SITE + "/#app", "name": "Serveur MCP Droit français",
-         "applicationCategory": "DeveloperApplication", "operatingSystem": "Tous (service web)",
+         "applicationCategory": "DeveloperApplication", "image": SITE + "/og.png", "operatingSystem": "Tous (service web)",
          "url": SITE + "/", "installUrl": SITE + "/mcp", "softwareHelp": REPO, "codeRepository": REPO,
          "license": "https://opensource.org/licenses/MIT", "inLanguage": "fr-FR", "isAccessibleForFree": True,
          "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
@@ -186,7 +186,12 @@ def render(etat_fn):
 <meta property="og:title" content="%(titre)s">
 <meta property="og:description" content="%(desc)s">
 <meta property="og:url" content="%(site)s/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="%(site)s/og.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Le droit français officiel, sourcé, dans Claude et ChatGPT. Un projet Studjoow.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="%(site)s/og.png">
 <meta name="author" content="Studjoow">
 <script type="application/ld+json">%(ld)s</script>
 <style>%(css)s</style>

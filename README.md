@@ -1,5 +1,7 @@
 <div align="center">
 
+[![Le droit français officiel, sourcé, dans Claude et ChatGPT](docs/apercu-social.png)](https://droit.studjoow.com)
+
 # Droit français sourcé : serveur MCP pour Claude et ChatGPT
 
 **Le droit français et européen officiel dans votre assistant IA, chaque réponse sourcée article par article.**

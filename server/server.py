@@ -160,7 +160,7 @@ sys.path.insert(0, str(SCRIPTS))
 import etat as etat_bases  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
-PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg")
+PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")
 _pret = {"t": 0.0, "v": False}
 
 
@@ -239,6 +239,11 @@ def build_app():
     app.router.routes.insert(0, Route("/llms.txt", llms))
     app.router.routes.insert(0, Route("/robots.txt", lambda r: PlainTextResponse(page.robots(), headers=cache)))
     app.router.routes.insert(0, Route("/sitemap.xml", lambda r: Response(page.sitemap(), media_type="application/xml", headers=cache)))
+    og = Path(__file__).resolve().parent / "og.png"
+    if not og.exists():
+        og = Path(__file__).resolve().parent.parent / "docs" / "apercu-social.png"
+    og_bytes = og.read_bytes() if og.exists() else b""
+    app.router.routes.insert(0, Route("/og.png", lambda r: Response(og_bytes, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})))
     app.router.routes.insert(0, Route("/favicon.svg", lambda r: Response(page.ICONE, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})))
     return Garde(app)
 
