@@ -160,6 +160,7 @@ sys.path.insert(0, str(SCRIPTS))
 import etat as etat_bases  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
+PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg")
 _pret = {"t": 0.0, "v": False}
 
 
@@ -192,7 +193,7 @@ class Garde:
         self.hits = defaultdict(deque)
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http" and scope["path"] not in ("/health", "/ping"):
+        if scope["type"] == "http" and scope["path"] not in PUBLIC_PATHS:
             now, q = time.monotonic(), self.hits[client_ip(scope)]
             while q and now - q[0] > 60:
                 q.popleft()
@@ -218,9 +219,27 @@ def build_app():
         return Response(json.dumps(e, ensure_ascii=False), status_code=200 if e["pret"] else 503,
                         media_type="application/json")
 
+    import page
+    from starlette.responses import HTMLResponse
+
+    cache = {"Cache-Control": "public, max-age=600"}
+
+    async def accueil(request):
+        body = await asyncio.get_running_loop().run_in_executor(None, page.render, etat_bases.etat)
+        return HTMLResponse(body, headers=cache)
+
+    async def llms(request):
+        body = await asyncio.get_running_loop().run_in_executor(None, page.llms, etat_bases.etat)
+        return PlainTextResponse(body, headers=cache)
+
     app = mcp.streamable_http_app()
     app.router.routes.insert(0, Route("/health", health))
     app.router.routes.insert(0, Route("/ping", lambda r: PlainTextResponse("ok")))
+    app.router.routes.insert(0, Route("/", accueil))
+    app.router.routes.insert(0, Route("/llms.txt", llms))
+    app.router.routes.insert(0, Route("/robots.txt", lambda r: PlainTextResponse(page.robots(), headers=cache)))
+    app.router.routes.insert(0, Route("/sitemap.xml", lambda r: Response(page.sitemap(), media_type="application/xml", headers=cache)))
+    app.router.routes.insert(0, Route("/favicon.svg", lambda r: Response(page.ICONE, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})))
     return Garde(app)
 
 
