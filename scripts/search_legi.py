@@ -275,11 +275,16 @@ def split_single(s):
     return None, None
 
 
+STOPWORDS = {"de", "du", "des", "la", "le", "les", "l", "d", "et", "a", "au", "aux", "un", "une", "en", "que",
+             "qui", "qu", "par", "pour", "sur", "dans", "ce", "ces", "se", "sa", "son", "ses", "il", "elle", "est",
+             "ou", "ne", "pas", "s", "n", "y", "c", "j", "m", "t"}
+
+
 def build_fts_query(q, exact=False, any_word=False):
     if exact:
         return q
     parts = re.findall(r'"[^"]+"|\S+', q)
-    terms = []
+    terms, empty = [], []
     for p in parts:
         if p.startswith('"') and p.endswith('"') and len(p) > 2:
             terms.append('"%s"' % p[1:-1].replace('"', ""))
@@ -288,7 +293,9 @@ def build_fts_query(q, exact=False, any_word=False):
             w = w.replace('"', "")
             if not w:
                 continue
-            terms.append('"%s"*' % w if len(w) >= 5 else '"%s"' % w)
+            term = '"%s"*' % w if len(w) >= 5 else '"%s"' % w
+            (empty if fold(w) in STOPWORDS else terms).append(term)
+    terms = terms or empty
     if not terms:
         sys.exit("Requête vide.")
     return (" OR " if any_word else " AND ").join(terms)
