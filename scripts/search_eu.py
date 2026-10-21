@@ -73,7 +73,11 @@ def fts_query(q):
     if re.search(r'["*]|\b(AND|OR|NOT)\b', q):
         return q
     mots = re.findall(r"\w+", q)
-    return " AND ".join('"%s"' % m for m in mots)
+    vides = {"de", "du", "des", "la", "le", "les", "l", "d", "et", "a", "à", "au", "aux", "un", "une", "en", "que",
+             "qui", "qu", "par", "pour", "sur", "dans", "ce", "ces", "se", "sa", "son", "ses", "est", "ou", "ne",
+             "pas", "s", "n", "y", "c", "j", "m", "t"}
+    utiles = [m for m in mots if m.lower() not in vides] or mots
+    return " AND ".join('"%s"' % m for m in utiles)
 
 
 def cmd_recherche(a):
@@ -98,7 +102,14 @@ def cmd_recherche(a):
            "FROM parties_fts JOIN parties p ON p.rowid = parties_fts.rowid JOIN docs d ON d.celex = p.celex "
            "WHERE parties_fts MATCH ?%s ORDER BY %s LIMIT ?" % (filtre, "d.date DESC" if a.tri == "date" else "rank"))
     try:
-        rows = con.execute(sql, params).fetchall()
+        rows = []
+        mots = re.findall(r"\w+", a.q)
+        if len(mots) > 1 and fts_query(a.q) != a.q:
+            rows = con.execute(sql, ['"%s"' % " ".join(mots)] + params[1:]).fetchall()
+        if len(rows) < a.limit:
+            vus = {(r["celex"], r["num"]) for r in rows}
+            rows += [r for r in con.execute(sql, params).fetchall() if (r["celex"], r["num"]) not in vus]
+            rows = rows[: a.limit]
     except Exception as exc:
         sys.exit("Requête invalide (%s). Syntaxe : \"phrase exacte\", AND, OR, NOT, prefixe*" % exc)
     print("Recherche UE : %s\n" % params[0])

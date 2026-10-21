@@ -23,8 +23,17 @@ def plier(texte):
     return "".join(c for c in t if unicodedata.category(c) != "Mn")
 
 
+MOTS_VIDES = {"de", "du", "des", "la", "le", "les", "l", "d", "et", "a", "à", "au", "aux", "un", "une", "en",
+              "que", "qui", "qu", "par", "pour", "sur", "dans", "ce", "ces", "se", "sa", "son", "ses", "il", "elle",
+              "est", "ou", "ne", "pas", "s", "n", "y", "c", "j", "m", "t"}
+
+
 def requete_fts(q):
     morceaux = re.findall(r'"[^"]*"|\S+', q)
+    if not any(m.startswith('"') or m in ("AND", "OR", "NOT", "NEAR") for m in morceaux):
+        mots = [w for m in morceaux for w in re.findall(r"\w+\*?", m, re.U)]
+        utiles = [w for w in mots if plier(w.rstrip("*")) not in MOTS_VIDES]
+        morceaux = utiles or mots
     sortie = []
     for m in morceaux:
         if m.startswith('"') or m in ("AND", "OR", "NOT", "NEAR") or re.fullmatch(r"\w+\*?", m, re.U):
