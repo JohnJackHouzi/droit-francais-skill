@@ -512,8 +512,9 @@ def _adresse_bloc(url):
 
 
 def _etapes():
-    lignes = [("Claude", "Paramètres, puis Connecteurs, puis <b>Ajouter un connecteur personnalisé</b>. Collez l'adresse, sans authentification."),
-              ("ChatGPT", "Paramètres, puis Applications et connecteurs, <b>Créer</b> un connecteur avec cette adresse."),
+    lignes = [("Ajoutez le connecteur", "Dans Claude : Paramètres, Connecteurs, <b>Ajouter un connecteur personnalisé</b>. "
+               "Dans ChatGPT : Applications et connecteurs, <b>Créer</b>. Adresse : <b>%s/abonne/mcp</b>" % SITE),
+              ("Connectez-vous", "Cliquez sur <b>Se connecter</b>, saisissez cet e-mail et le code reçu. Aucun mot de passe."),
               ("Essayez", "Demandez : « Que dit l'article 1240 du Code civil ? »")]
     rangs = "".join(
         '<tr><td style="vertical-align:top;padding:0 12px 12px 0;width:28px"><div style="width:26px;height:26px;border-radius:13px;'
@@ -548,10 +549,12 @@ async def envoyer_cle_si_besoin(abonnement):
     url = adresse(cle_de(abonnement, row["version"]))
     ok = await envoyer_email(row["email"], "Votre accès Droit by Studjoow est prêt", _gabarit(
         "Votre accès est prêt.", [
-            _p("Merci pour votre confiance. Votre abonnement est actif : collez l'adresse ci-dessous dans Claude ou "
-               "ChatGPT, et votre assistant s'appuiera sur les textes officiels, vérifiés avant d'être cités."),
-            _adresse_bloc(url),
+            _p("Merci pour votre confiance. Votre abonnement est actif : votre assistant s'appuiera désormais sur les "
+               "textes officiels, vérifiés avant d'être cités."),
             _etapes(),
+            _p("<b>Client sans connexion</b> (Claude Code, Cursor...) : utilisez plutôt votre adresse personnelle.",
+               "font-size:14px;margin:4px 0 8px"),
+            _adresse_bloc(url),
             _recap(row),
             _bouton("Gérer mon abonnement", SITE + "/compte"),
             _p("Depuis votre compte : facture, carte bancaire, résiliation en un clic, ou nouvelle adresse si vous pensez "
@@ -560,9 +563,9 @@ async def envoyer_cle_si_besoin(abonnement):
                "moins les jours déjà utilisés (<a href=\"%s/cgv\" style=\"color:#b1338a\">CGV</a>)." % SITE,
                "font-size:13px;color:#7e8493;margin:0"),
         ], "Votre adresse personnelle et l'installation en 30 secondes."),
-        "Votre accès Droit by Studjoow est prêt.\n\nVotre adresse personnelle : %s\n\nClaude : Paramètres > Connecteurs > "
-        "Ajouter un connecteur personnalisé, collez l'adresse.\nChatGPT : Paramètres > Applications et connecteurs > Créer.\n\n"
-        "Gérer ou résilier : %s/compte\nCGV : %s/cgv\n" % (url, SITE, SITE))
+        "Votre accès Droit by Studjoow est prêt.\n\nAjoutez le connecteur %s/abonne/mcp dans Claude ou ChatGPT, puis "
+        "« Se connecter » avec cet e-mail et le code reçu.\n\nClients sans connexion : votre adresse personnelle %s\n\n"
+        "Gérer ou résilier : %s/compte\nCGV : %s/cgv\n" % (SITE, url, SITE, SITE))
     if not ok:
         c.execute("UPDATE cles SET email_envoye=0 WHERE abonnement=?", (abonnement,))
     return ok

@@ -35,7 +35,9 @@ Exemple de réponse attendue :
 
 ## En 30 secondes
 
-Adresse publique (essai gratuit) : **`https://droit.studjoow.com/mcp`** (sans authentification). Abonnés : coller à la place l'adresse personnelle `https://droit.studjoow.com/mcp/<clé>` reçue après le paiement.
+Adresse publique (essai gratuit) : **`https://droit.studjoow.com/mcp`** (sans authentification).
+
+Abonnés : **`https://droit.studjoow.com/abonne/mcp`** avec connexion OAuth 2.1 (« Se connecter » dans Claude ou ChatGPT : e-mail puis code à 6 chiffres). Pour un client sans OAuth, l'adresse personnelle `https://droit.studjoow.com/mcp/<clé>` reçue après le paiement fonctionne aussi.
 
 ### Dans Claude (claude.ai, application de bureau ou mobile)
 
@@ -151,6 +153,7 @@ Au premier démarrage, le conteneur télécharge les dumps DILA un par un dans l
 |---|---|
 | `/mcp` | Serveur MCP (Streamable HTTP, sans état) |
 | `/mcp/<clé>` | Adresse personnelle d'un abonné (si l'abonnement Stripe est configuré) |
+| `/abonne/mcp` | Serveur MCP des abonnés, protégé par OAuth 2.1 (PKCE, enregistrement dynamique des clients, métadonnées `/.well-known/oauth-protected-resource` et `/.well-known/oauth-authorization-server`) |
 | `/` | Page d'accueil (mode d'emploi, état des bases) |
 | `/health` | État des bases en JSON : 200 si prêtes, 503 sinon |
 | `/ping` | Sonde de vie du conteneur |

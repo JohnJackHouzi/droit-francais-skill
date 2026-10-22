@@ -175,6 +175,7 @@ import etat as etat_bases  # noqa: E402
 import abonnement  # noqa: E402
 import conformite  # noqa: E402
 import analyse_ia  # noqa: E402
+import oauth  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
 PUBLIC_PATHS = ("/health", "/ping", "/", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")
@@ -272,7 +273,17 @@ class Garde:
         if scope["type"] != "http" or scope["path"] in PUBLIC_PATHS or scope["path"].startswith("/static/"):
             return await self.app(scope, receive, send)
         abonne = None
-        if scope["path"].startswith("/mcp/") and scope["path"].strip("/") != "mcp":
+        if scope["path"].rstrip("/") == "/abonne/mcp":
+            entetes = dict(scope["headers"])
+            abonne = oauth.abonne_par_jeton(entetes.get(b"authorization", b"").decode("latin-1"))
+            if abonne is None:
+                corps = json.dumps({"error": "invalid_token", "error_description": "Connexion requise : abonnement Droit by Studjoow."}).encode()
+                await send({"type": "http.response.start", "status": 401, "headers": [
+                    (b"content-type", b"application/json"), (b"www-authenticate", oauth.entete_401().encode()),
+                    (b"access-control-allow-origin", b"*"), (b"access-control-expose-headers", b"WWW-Authenticate")]})
+                return await send({"type": "http.response.body", "body": corps})
+            scope["path"], scope["raw_path"] = "/mcp", b"/mcp"
+        elif scope["path"].startswith("/mcp/") and scope["path"].strip("/") != "mcp":
             abonne = abonnement.verifier_cle(scope["path"][5:].strip("/"))
             scope["path"], scope["raw_path"] = "/mcp", b"/mcp"
             if abonne is None:
@@ -377,7 +388,7 @@ def build_app():
 
 
 def routes_abonnement(page):
-    from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
+    from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
     from starlette.routing import Route
 
     prive = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
@@ -554,7 +565,129 @@ def routes_abonnement(page):
             return JSONResponse({"erreur": "abonnement inconnu"}, status_code=404, headers=prive)
         return JSONResponse(rep, headers=prive)
 
+    cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type, mcp-protocol-version",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS"}
+
+    def json_oauth(data, status=200):
+        return JSONResponse(data, status_code=status, headers={**cors, "Cache-Control": "no-store", "Pragma": "no-cache"})
+
+    async def meta_ressource(request):
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=cors)
+        return JSONResponse(oauth.meta_ressource(), headers={**cors, "Cache-Control": "public, max-age=3600"})
+
+    async def meta_serveur(request):
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=cors)
+        return JSONResponse(oauth.meta_serveur(), headers={**cors, "Cache-Control": "public, max-age=3600"})
+
+    async def oauth_register(request):
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=cors)
+        try:
+            donnees = await request.json()
+            rep = await asyncio.get_running_loop().run_in_executor(None, oauth.enregistrer_client, donnees)
+        except (ValueError, AttributeError) as exc:
+            return json_oauth({"error": "invalid_client_metadata", "error_description": str(exc)[:200]}, 400)
+        return json_oauth(rep, 201)
+
+    connexions = defaultdict(deque)
+
+    def trop_de_codes(ip):
+        now, q = time.monotonic(), connexions[ip]
+        while q and now - q[0] > 3600:
+            q.popleft()
+        if len(q) >= 8:
+            return True
+        q.append(now)
+        return False
+
+    async def oauth_authorize(request):
+        if request.method == "GET":
+            try:
+                did, nom = oauth.ouvrir_demande(dict(request.query_params))
+            except oauth.ErreurOAuth as exc:
+                return vue(page.page_oauth_erreur(exc.description), 400)
+            return vue(page.page_oauth(nom, did))
+        f = await request.form()
+        did, action = f.get("demande", ""), f.get("action", "")
+        d = oauth.demande(did)
+        if not d:
+            return vue(page.page_oauth_erreur("Demande expirée : relancez la connexion depuis votre assistant."), 400)
+        nom = (oauth.client(d["client_id"]) or {"nom": "Assistant"})["nom"]
+        if action == "refuser":
+            return RedirectResponse(oauth.refuser(did), status_code=302)
+        if action == "email":
+            email = (f.get("email") or "").strip()[:200]
+            if "@" not in email:
+                return vue(page.page_oauth(nom, did, erreur="Adresse e-mail invalide."), 400)
+            if trop_de_codes(client_ip(request.scope)):
+                return vue(page.page_oauth(nom, did, erreur="Trop de demandes de code : réessayez dans une heure."), 429)
+            await oauth.envoyer_code_mail(did, email)
+            return vue(page.page_oauth(nom, did, etape="code", email=email))
+        if action == "code":
+            row = oauth.verifier_code_mail(did, f.get("code", ""))
+            url = oauth.accorder(did, row) if row else None
+            if url:
+                return RedirectResponse(url, status_code=302)
+            d = oauth.demande(did)
+            if not d or d["essais"] >= oauth.ESSAIS_MAX:
+                return vue(page.page_oauth_erreur("Trop d'essais : relancez la connexion depuis votre assistant."), 400)
+            return vue(page.page_oauth(nom, did, etape="code", email=d["email"] or "",
+                                       erreur="Code incorrect ou expiré (%d essai(s) restant(s))." % (oauth.ESSAIS_MAX - d["essais"])), 400)
+        if action == "cle":
+            row = abonnement.verifier_cle(abonnement.extraire_cle(f.get("adresse", "")))
+            if row and row["statut"] == "actif":
+                return RedirectResponse(oauth.accorder(did, row), status_code=302)
+            return vue(page.page_oauth(nom, did, etape="cle", erreur="Adresse personnelle inconnue ou abonnement inactif."), 400)
+        return vue(page.page_oauth(nom, did, etape=action if action in ("cle",) else "email"))
+
+    async def oauth_token(request):
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=cors)
+        form = dict(await request.form())
+        basic = None
+        entete = request.headers.get("authorization", "")
+        if entete.lower().startswith("basic "):
+            import base64
+            from urllib.parse import unquote
+            try:
+                ident, _, secret = base64.b64decode(entete[6:]).decode().partition(":")
+                basic = (unquote(ident), unquote(secret))
+            except ValueError:
+                return json_oauth({"error": "invalid_client"}, 401)
+        try:
+            rep = await asyncio.get_running_loop().run_in_executor(None, oauth.echanger, form, basic)
+        except oauth.ErreurOAuth as exc:
+            return json_oauth({"error": exc.code, "error_description": exc.description}, exc.statut)
+        return json_oauth(rep)
+
+    async def oauth_revoke(request):
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=cors)
+        oauth.revoquer_jeton((await request.form()).get("token", ""))
+        return Response(status_code=200, headers=cors)
+
+    async def deconnecter(request):
+        if not abonnement.actif():
+            return ferme()
+        row = ligne_depuis(await request.form())
+        if not row:
+            return vue(page.page_compte(erreur="Adresse personnelle inconnue."), 404)
+        n = oauth.deconnecter_tout(row["abonnement"])
+        return vue(page.page_gestion(row, abonnement.adresse(abonnement.cle_de(row["abonnement"], row["version"])),
+                                     info="Assistants déconnectés (%d jeton(s) supprimé(s)). Reconnectez-les quand vous voulez." % n))
+
     return [
+        Route("/.well-known/oauth-protected-resource", meta_ressource, methods=["GET", "OPTIONS"]),
+        Route("/.well-known/oauth-protected-resource/abonne/mcp", meta_ressource, methods=["GET", "OPTIONS"]),
+        Route("/.well-known/oauth-authorization-server", meta_serveur, methods=["GET", "OPTIONS"]),
+        Route("/.well-known/openid-configuration", meta_serveur, methods=["GET", "OPTIONS"]),
+        Route("/oauth/register", oauth_register, methods=["POST", "OPTIONS"]),
+        Route("/oauth/authorize", oauth_authorize, methods=["GET", "POST"]),
+        Route("/oauth/token", oauth_token, methods=["POST", "OPTIONS"]),
+        Route("/oauth/revoke", oauth_revoke, methods=["POST", "OPTIONS"]),
+        Route("/compte/deconnecter", deconnecter, methods=["POST"]),
         Route("/admin/api/resume", admin_resume),
         Route("/admin/api/regenerer", admin_regenerer, methods=["POST"]),
         Route("/abonnement", formulaire, methods=["GET", "POST"]),

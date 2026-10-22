@@ -39,9 +39,10 @@ FAQ = [
      "%d requêtes par jour sur l'adresse publique, sans inscription, avec les mêmes sources et les mêmes outils. "
      "Assez pour essayer sur de vraies questions avant de vous abonner." % ESSAI_PAR_JOUR),
     ("Comment fonctionne l'abonnement ?",
-     "%s € par mois, sans engagement. Après le paiement, vous recevez une adresse personnelle à coller comme "
-     "connecteur dans Claude ou ChatGPT, avec %d requêtes par jour : bien au-delà d'un usage intensif. Résiliable à tout "
-     "moment depuis la page Mon compte, avec effet à la fin du mois payé." % (PRIX, PLAFOND)),
+     "%s € par mois, sans engagement. Ajoutez le connecteur %s/abonne/mcp dans Claude ou ChatGPT et connectez-vous "
+     "avec votre e-mail et un code : %d requêtes par jour, bien au-delà d'un usage intensif. Pour les clients sans "
+     "connexion, une adresse personnelle est aussi fournie. Résiliable à tout moment depuis la page Mon compte, avec "
+     "effet à la fin du mois payé." % (PRIX, SITE, PLAFOND)),
     ("Quelle différence entre Particulier et Pro ?",
      "Les deux donnent accès aux mêmes sources et aux mêmes outils. L'offre Pro (%s € par mois, ou %s € par an) "
      "monte à %d requêtes par jour, émet les factures au nom de votre entreprise et inclut un support prioritaire "
@@ -51,8 +52,9 @@ FAQ = [
      "L'assistant reçoit un message clair indiquant que le quota du jour est atteint, avec le lien d'abonnement. "
      "L'essai repart le lendemain à minuit (UTC)."),
     ("Mon adresse personnelle a fuité, que faire ?",
-     "Régénérez-la depuis la page Mon compte : l'ancienne cesse aussitôt de fonctionner. Si vous l'avez perdue, "
-     "un lien d'accès est envoyé à l'e-mail utilisé au paiement."),
+     "Régénérez-la depuis la page Mon compte : l'ancienne cesse aussitôt de fonctionner. Vous pouvez aussi y "
+     "déconnecter tous vos assistants. Le plus sûr reste la connexion par e-mail (%s/abonne/mcp), sans adresse secrète "
+     "à copier." % SITE),
     ("Les réponses sont-elles fiables ?",
      "Chaque référence peut être contrôlée par l'outil verifier_references avant d'être citée : une référence "
      "introuvable ou une citation absente du texte est signalée. Cela réduit fortement les inventions, sans "
@@ -614,10 +616,10 @@ PAGE = """<!doctype html>
 </section>
 
 <section id="installer">
-<div class="titre"><span class="num">§ 5</span><div><h2>Installer en 30 secondes.</h2></div><p>Une adresse à coller, rien à télécharger. Avec l'abonnement, remplacez-la par votre adresse personnelle.</p></div>
+<div class="titre"><span class="num">§ 5</span><div><h2>Installer en 30 secondes.</h2></div><p>Une adresse à coller, rien à télécharger. Abonné ? Utilisez <code>{{site}}/abonne/mcp</code> et cliquez sur « Se connecter » : votre e-mail et un code suffisent.</p></div>
 <div class="install">
 <div><h3>Claude</h3><ol><li>Paramètres, puis <b>Connecteurs</b></li><li><b>Ajouter un connecteur personnalisé</b></li><li>URL : <code>{{site}}/mcp</code></li><li>Demander : « Que dit l'article 1240 du Code civil ? »</li></ol></div>
-<div><h3>ChatGPT</h3><ol><li>Paramètres, puis <b>Applications et connecteurs</b></li><li>Selon l'offre, activer le <b>mode développeur</b></li><li><b>Créer</b> un connecteur, URL ci-dessus, sans authentification</li><li>Le choisir dans le menu des outils</li></ol></div>
+<div><h3>ChatGPT</h3><ol><li>Paramètres, puis <b>Applications et connecteurs</b></li><li>Selon l'offre, activer le <b>mode développeur</b></li><li><b>Créer</b> un connecteur, URL ci-dessus (sans authentification pour l'essai, OAuth pour l'abonnement)</li><li>Le choisir dans le menu des outils</li></ol></div>
 <div><h3>Claude Code, Cursor, VS Code</h3><pre>claude mcp add --transport http \\
   droit-francais {{site}}/mcp</pre><pre>{"mcpServers":{"droit-francais":
  {"type":"http","url":"{{site}}/mcp"}}}</pre></div>
@@ -664,7 +666,8 @@ def llms(etat_fn):
         "",
         "Adresse publique du serveur MCP (Streamable HTTP, sans authentification) : %s/mcp" % SITE,
         "Essai gratuit : %d appels d'outils par jour et par IP sur l'adresse publique." % ESSAI_PAR_JOUR,
-        "Abonnement : %s € par mois, sans engagement, adresse personnelle %s/mcp/<clé>, %d requêtes par jour : %s/abonnement" % (PRIX, SITE, PLAFOND, SITE),
+        "Abonnement : %s € par mois, sans engagement, %d requêtes par jour : %s/abonnement" % (PRIX, PLAFOND, SITE),
+        "Abonnés : connecteur %s/abonne/mcp avec connexion OAuth 2.1 (e-mail + code), ou adresse personnelle %s/mcp/<clé> pour les clients sans OAuth." % (SITE, SITE),
         "Offre Pro : %s € par mois ou %s € par an, %d requêtes par jour, facture au nom de l'entreprise : %s/abonnement?offre=pro" % (PRIX_PRO, PRIX_PRO_AN, PLAFOND_PRO, SITE),
         "Auto-hébergement : gratuit, code sous licence MIT (%s)." % REPO,
         "Mise à jour des bases : %s" % (r["maj"] or "voir %s/health" % SITE),
@@ -811,11 +814,11 @@ def _copier(url):
             "Copier</button></div>" % e)
 
 
-INSTALLER = """<h2>L'installer</h2>
-<ol><li><b>Claude</b> : Paramètres, puis Connecteurs, puis <b>Ajouter un connecteur personnalisé</b>. Coller l'adresse, sans authentification.</li>
-<li><b>ChatGPT</b> : Paramètres, puis Applications et connecteurs, <b>Créer</b> un connecteur avec cette adresse, sans authentification.</li>
-<li><b>Claude Code</b> : <code>claude mcp add --transport http droit-francais &lt;adresse&gt;</code></li></ol>
-<p>Si vous utilisiez l'adresse publique de l'essai, remplacez-la par celle-ci.</p>"""
+INSTALLER = """<h2>L'installer avec votre compte</h2>
+<ol><li><b>Claude</b> : Paramètres, puis Connecteurs, puis <b>Ajouter un connecteur personnalisé</b>. Adresse : <code>%s/abonne/mcp</code>, puis <b>Se connecter</b> : saisissez votre e-mail et le code reçu.</li>
+<li><b>ChatGPT</b> : Paramètres, puis Applications et connecteurs, <b>Créer</b> un connecteur avec la même adresse, authentification OAuth.</li>
+<li><b>Sans connexion</b> (Claude Code, Cursor, anciens clients) : collez plutôt votre adresse personnelle, ci-dessus.</li></ol>
+<p>Si vous utilisiez l'adresse publique de l'essai, remplacez-la.</p>""" % SITE
 
 
 def page_merci(url, message=None, email=None, envoye=False):
@@ -825,13 +828,13 @@ def page_merci(url, message=None, email=None, envoye=False):
     courriel = ("<p>Une copie vient d'être envoyée à <b>%s</b>.</p>" % html.escape(email)) if envoye and email else \
         "<p>Copiez-la maintenant : elle ne sera plus affichée sur cette page.</p>"
     return gabarit("Merci", """<h1>Merci.</h1>
-<p>Votre abonnement est actif. Voici votre adresse personnelle, à coller comme connecteur :</p>
+<p>Votre abonnement est actif. Le plus simple : ajoutez le connecteur <code>%s/abonne/mcp</code> et connectez-vous avec votre e-mail (voir plus bas). Pour les clients sans connexion, voici aussi votre adresse personnelle :</p>
 %s
 <p class="alerte"><b>Affichée une seule fois.</b> Gardez-la pour vous : elle donne accès à votre abonnement. En cas de doute, régénérez-la depuis <a href="/compte">votre compte</a>.</p>
 %s
 %s
 <p class="mini">Gérer ou résilier à tout moment : <a href="/compte">Mon compte</a>. Information juridique, pas conseil.</p>
-""" % (_copier(url), courriel, INSTALLER), indexer=False)
+""" % (SITE, _copier(url), courriel, INSTALLER), indexer=False)
 
 
 def page_compte(erreur=None, info=None):
@@ -861,7 +864,7 @@ def _offre_ligne(row):
     return "%s · %s € par %s · %s requêtes par jour" % (nom, prix, periode, nombre(plafond))
 
 
-def page_gestion(row, url, nouvelle=False):
+def page_gestion(row, url, nouvelle=False, info=None):
     e = html.escape
     libelles = {"actif": "Actif", "suspendu": "Suspendu (paiement en échec)", "revoque": "Terminé"}
     fin = ("Résiliation prévue le %s" if row["resiliation_prevue"] else "Prochain prélèvement le %s") % _date_fr(row["fin_periode"])
@@ -872,6 +875,12 @@ def page_gestion(row, url, nouvelle=False):
         nom, dom = email.split("@", 1)
         email = nom[:2] + "•" * max(len(nom) - 2, 1) + "@" + dom
     cache = '<input type="hidden" name="adresse" value="%s">' % e(url)
+    import oauth
+    lignes = oauth.assistants_connectes(row["abonnement"])
+    assistants = ("<ul>%s</ul>" % "".join("<li><b>%s</b> · connecté le %s</li>" % (e(l["nom"]), _date_fr(l["dernier"])) for l in lignes)
+                  if lignes else '<p class="mini">Aucun assistant connecté par « Se connecter ». Ajoutez le connecteur %s/abonne/mcp dans Claude ou ChatGPT.</p>' % SITE)
+    if info:
+        assistants = '<p class="info">%s</p>' % e(info) + assistants
     adresse_html = (_copier(url) + '<p class="info">Nouvelle adresse créée : l\'ancienne ne fonctionne plus. Remplacez-la dans vos connecteurs.</p>') if nouvelle else \
         '<p class="mini">Adresse personnelle : <code>%s/mcp/%s…</code></p>' % (SITE, e(url.rsplit("/", 1)[1][:6]))
     return gabarit("Mon abonnement", """<h1>Mon abonnement.</h1>
@@ -883,8 +892,10 @@ def page_gestion(row, url, nouvelle=False):
 <form class="ligne" method="post" action="/compte/regenerer" onsubmit="return confirm('L\\'adresse actuelle cessera de fonctionner. Continuer ?')">%s<button class="btn btn-2" type="submit">Régénérer mon adresse</button></form>
 <p class="mini">La gestion du paiement, des factures et la résiliation se font sur le portail sécurisé de Stripe. Une résiliation prend effet à la fin de la période payée.</p>
 </div>
+<div class="carte"><h2>Assistants connectés</h2>%s
+<form class="ligne" method="post" action="/compte/deconnecter">%s<button class="btn btn-2" type="submit">Déconnecter tous mes assistants</button></form></div>
 %s""" % (e(row["statut"]), libelles.get(row["statut"], row["statut"]), e(_offre_ligne(row)), e(email), fin, _date_fr(row["cree_le"]),
-         adresse_html, cache, cache, INSTALLER if nouvelle else ""), indexer=False)
+         adresse_html, cache, cache, assistants, cache, INSTALLER if nouvelle else ""), indexer=False)
 
 
 def cgv():
@@ -949,6 +960,7 @@ def confidentialite():
 <p>Pour appliquer la limite de %d requêtes par jour, nous conservons une empreinte non réversible de votre adresse IP (HMAC SHA-256 avec un sel secret) et un compteur par jour. Ces lignes sont supprimées automatiquement au bout de 2 jours. Base légale : intérêt légitime (prévenir les abus d'un service gratuit).</p>
 <h2>Abonnement</h2>
 <ul><li>Données : adresse e-mail, identifiants client et abonnement Stripe, statut et dates de l'abonnement, empreinte SHA-256 de votre adresse personnelle (jamais l'adresse en clair), horodatage de votre demande d'accès immédiat.</li>
+<li>Connexion des assistants : nom de l'assistant enregistré (Claude, ChatGPT...), empreintes des jetons de connexion (jamais les jetons en clair), conservées 90 jours au plus ; code de connexion à usage unique, valable 10 minutes.</li>
 <li>Finalités : fournir le service, envoyer votre adresse personnelle et les messages liés au compte, prouver votre demande d'exécution immédiate.</li>
 <li>Base légale : exécution du contrat ; obligations légales pour la facturation.</li>
 <li>Durée : pendant l'abonnement, puis 12 mois après sa fin, avant suppression automatique. Les justificatifs de paiement sont conservés par Stripe selon ses obligations légales.</li></ul>
@@ -1071,3 +1083,61 @@ def page_rapport(job):
 })();
 </script>
 """ % (CSS_CONF, json.dumps(job)), "Rapport de conformité", indexer=False)
+
+
+CSS_OAUTH = """
+.oauth{max-width:520px;margin:36px auto 0}
+.oauth .carte{margin:0}
+.oauth h1{font-size:clamp(34px,5vw,46px);margin:0 0 10px}
+.oauth .qui{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+.oauth .lien-bouton{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
+.oauth .champ-code{font:600 28px var(--mono);letter-spacing:.35em;text-align:center}
+.oauth .rangee{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.oauth .garanties{list-style:none;padding:0;margin:18px 0 0;font-size:13.5px;color:var(--muted);display:grid;gap:6px}
+.oauth .garanties li::before{content:"§ ";color:var(--accent);font-family:var(--serif)}
+"""
+
+
+def page_oauth(nom_client, demande, etape="email", email="", erreur=None):
+    e = html.escape
+    alerte = '<p class="alerte">%s</p>' % e(erreur) if erreur else ""
+    cache = '<input type="hidden" name="demande" value="%s">' % e(demande)
+    if etape == "code":
+        corps = """<p>Si un abonnement actif correspond à <b>%s</b>, un code à 6 chiffres vient d'y être envoyé.</p>%s
+<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="code">
+<input class="champ champ-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" required autofocus>
+<div class="rangee"><button class="btn btn-1" type="submit">Connecter</button></div></form>
+<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="email"><input type="hidden" name="email" value="%s">
+<button class="lien-bouton" type="submit">Renvoyer un code</button></form>""" % (e(email), alerte, cache, cache, e(email))
+    elif etape == "cle":
+        corps = """<p>Collez l'adresse personnelle reçue après votre paiement.</p>%s
+<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="cle">
+<input class="champ" name="adresse" placeholder="%s/mcp/..." autocomplete="off" required autofocus>
+<div class="rangee"><button class="btn btn-1" type="submit">Connecter</button></div></form>
+<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="retour">
+<button class="lien-bouton" type="submit">Recevoir plutôt un code par e-mail</button></form>""" % (alerte, cache, SITE, cache)
+    else:
+        corps = """<p>Saisissez l'e-mail utilisé pour votre abonnement : vous recevrez un code de connexion.</p>%s
+<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="email">
+<input class="champ" type="email" name="email" value="%s" placeholder="vous@exemple.fr" autocomplete="email" required autofocus>
+<div class="rangee"><button class="btn btn-1" type="submit">Recevoir mon code</button></div></form>
+<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="cle">
+<button class="lien-bouton" type="submit">J'ai mon adresse personnelle</button></form>""" % (alerte, cache, e(email), cache)
+    return gabarit("Connexion", """<style>%s</style><div class="oauth">
+<p class="qui">Connexion</p>
+<h1>Connecter %s à Droit by Studjoow.</h1>
+<div class="carte">%s
+<ul class="garanties"><li>L'assistant pourra consulter les textes officiels avec votre abonnement.</li>
+<li>Aucun mot de passe : un code à usage unique, valable 10 minutes.</li>
+<li>Déconnexion possible à tout moment depuis <a href="/compte">votre compte</a>.</li></ul>
+<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="refuser">
+<button class="lien-bouton" type="submit">Annuler et revenir à l'assistant</button></form>
+</div>
+<p class="mini">Pas encore abonné ? <a href="/abonnement">Voir les offres</a>.</p>
+</div>""" % (CSS_OAUTH, e(nom_client), corps, cache), "Connexion de votre assistant à Droit by Studjoow.", indexer=False)
+
+
+def page_oauth_erreur(message):
+    return gabarit("Connexion impossible", """<style>%s</style><div class="oauth"><h1>Connexion impossible.</h1>
+<p class="alerte">%s</p><p class="mini">Besoin d'aide : <a href="mailto:%s">%s</a>.</p></div>""" % (
+        CSS_OAUTH, html.escape(message), CONTACT, CONTACT), "Connexion impossible", indexer=False)
