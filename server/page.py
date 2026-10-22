@@ -52,6 +52,28 @@ FAQ = [
      "de justice de l'Union européenne en français."),
 ]
 
+
+USAGES = [
+    ("Particuliers", "Connaître vos droits, texte à l'appui.",
+     ["Mon propriétaire peut-il garder ma caution ?", "Combien de temps pour retourner une commande en ligne ?"],
+     "Une mise en demeure qui cite les bons articles."),
+    ("Salariés et RH", "Votre convention collective, pas une moyenne.",
+     ["Quel préavis pour un cadre, convention Syntec ?", "Combien de jours de congé pour un mariage, IDCC 1486 ?"],
+     "La règle de votre branche, à la date des faits."),
+    ("Entrepreneurs", "Lancer sans angle mort.",
+     ["Quelles mentions obligatoires sur mes factures ?", "Mon site doit-il afficher un droit de rétractation ?"],
+     "Les obligations qui s'appliquent, article par article."),
+    ("Juristes, avocats, DPO", "Citer juste, à la bonne date.",
+     ["Version de l'article L1237-19 au 1er mars 2019 ?", "Arrêts récents de la chambre sociale sur le forfait jours ?"],
+     "Pourvoi, ECLI, version : tout est traçable."),
+    ("Étudiants", "Comprendre un arrêt plutôt que le réciter.",
+     ["Que juge l'arrêt C-131/12 de la CJUE ?", "Comment l'article 1240 a-t-il remplacé l'ancien 1382 ?"],
+     "Le texte intégral, pas un résumé de mémoire."),
+    ("Journalistes", "Vérifier une citation en dix secondes.",
+     ["Cet article de loi cité dans le débat existe-t-il ?", "Que dit vraiment le règlement IA sur les deepfakes ?"],
+     "La source exacte, avec son lien officiel."),
+]
+
 OUTILS = [
     ("lire_article", "Texte d'un article de code ou de loi à une date donnée"),
     ("rechercher_loi", "Recherche plein texte dans les codes, lois, Journal officiel et conventions collectives"),
@@ -117,6 +139,10 @@ def resume(etat_fn):
     }
     _cache.update(t=time.monotonic(), v=r)
     return r
+
+
+def insec(t):
+    return t.replace(" ?", "&#8239;?").replace(" :", "&#160;:").replace(" !", "&#8239;!")
 
 
 def nombre(n):
@@ -294,6 +320,41 @@ section{padding:96px 0 0}
   letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:6px}
 .offre.libre{background:transparent;border-style:dashed}
 
+/* usages */
+.usages-gain{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:0 0 34px 164px;border-top:1px solid var(--fg)}
+.usages-gain div{padding:18px 24px 0 0}
+.usages-gain b{display:block;font-family:var(--serif);font-weight:400;font-size:27px;line-height:1.1;margin-bottom:6px}
+.usages-gain span{color:var(--ink);font-size:14.5px}
+.usages{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-left:164px}
+.usage{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:24px 22px 22px;display:flex;flex-direction:column;
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s}
+.usage:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 26px 50px -34px rgba(177,51,138,.55)}
+.usage .qui{font:600 11.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.usage h3{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.08;margin:0 0 16px}
+.bulles{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}
+.bulles li{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:9px 12px 9px 30px;
+  font-size:14px;line-height:1.4;color:var(--fg)}
+.bulles li::before{content:"«";position:absolute;left:11px;top:6px;font-family:var(--serif);font-size:20px;color:var(--accent)}
+.usage .gain{margin-top:auto;padding-top:12px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink)}
+.usage .gain::before{content:"→ ";color:var(--accent);font-weight:600}
+.phare{grid-column:1/-1;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center;background:var(--deep);color:#f7f8fb;
+  border-radius:22px;padding:34px 34px;position:relative;overflow:hidden}
+.phare::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(520px 260px at 92% 10%,rgba(224,83,159,.32),transparent 70%)}
+.phare>*{position:relative}
+.phare .qui{color:#e0539f}
+.phare h3{font-family:var(--serif);font-weight:400;font-size:clamp(30px,3.4vw,42px);line-height:1.02;margin:0 0 12px}
+.phare h3 em{color:#e0539f}
+.phare p{color:#c9cdd8;margin:0 0 10px;font-size:15.5px}
+.phare .terminal{margin:0}
+.usages-cta{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 0 164px}
+@media (max-width:900px){
+  .usages,.usages-gain,.usages-cta{margin-left:0}
+  .usages{grid-template-columns:1fr}.usages-gain{grid-template-columns:1fr;gap:4px}
+  .phare{grid-template-columns:1fr;padding:26px 20px;gap:22px}
+}
+@media (min-width:901px) and (max-width:1100px){.usages{grid-template-columns:repeat(2,1fr)}}
+
 /* installation */
 .install{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-left:164px}
 .install div{border-top:2px solid var(--fg);padding-top:16px}
@@ -359,12 +420,15 @@ def render(etat_fn):
             "<div><b>%s</b><span>%s</span></div>" % (nombre(n), lab) for n, lab in items[:4])
     sources = "".join('<div><code>%s</code><b>%s</b><span>%s</span></div>' % (e(c), e(t), e(d)) for c, t, d in SOURCES)
     outils = "".join("<p><code>%s</code>%s</p>" % (e(n), e(d)) for n, d in OUTILS)
+    usages = "".join(
+        '<article class="usage"><p class="qui">%s</p><h3>%s</h3><ul class="bulles">%s</ul><p class="gain">%s</p></article>'
+        % (e(qui), insec(e(titre)), "".join("<li>%s</li>" % insec(e(q)) for q in qs), insec(e(gain))) for qui, titre, qs, gain in USAGES)
     faq = "".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in FAQ)
     v = {
         "pied": PIED,
         "titre": e(TITRE), "desc": e(DESCRIPTION), "site": SITE, "ld": json_ld().replace("</", "<\\/"),
         "fonts": FONTS, "css": CSS, "etat": etat, "chiffres": chiffres, "sources": sources, "outils": outils,
-        "faq": faq, "plafond": nombre(PLAFOND), "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
+        "faq": faq, "usages": usages, "plafond": nombre(PLAFOND), "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
         "abonner": _boutons_abonnement(), "abonner2": _boutons_abonnement("btn btn-1"),
     }
     page = PAGE
@@ -407,7 +471,7 @@ PAGE = """<!doctype html>
 <div class="wrap">
 <header class="bar">
 <a href="https://studjoow.com" class="marque"><span>Un projet</span>{{logo}}</a>
-<nav class="nav" aria-label="Sections"><a href="#methode">Méthode</a><a href="#sources">Sources</a><a href="#tarifs">Tarifs</a><a href="#faq">FAQ</a></nav>
+<nav class="nav" aria-label="Sections"><a href="#usages">Usages</a><a href="#methode">Méthode</a><a href="#sources">Sources</a><a href="#tarifs">Tarifs</a><a href="#faq">FAQ</a></nav>
 <span class="etat">{{etat}}</span>
 </header>
 
@@ -439,8 +503,32 @@ PAGE = """<!doctype html>
 {{chiffres}}
 
 <div class="wrap">
+<section id="usages">
+<div class="titre"><span class="num">§ 1</span><div><h2>Ce que vous pouvez<br>en faire.</h2></div><p>Posez votre question à Claude ou ChatGPT comme d'habitude. La différence : la réponse s'appuie sur le texte officiel, à la bonne date, et chaque référence est vérifiée avant d'arriver jusqu'à vous.</p></div>
+<div class="usages-gain">
+<div><b>Moins d'erreurs.</b><span>Une référence introuvable est signalée au lieu d'être inventée.</span></div>
+<div><b>Du temps gagné.</b><span>L'article, la jurisprudence et les liens, sans fouiller Légifrance.</span></div>
+<div><b>Des sources à montrer.</b><span>Chaque affirmation arrive avec son identifiant officiel.</span></div>
+</div>
+<div class="usages">
+{{usages}}
+<div class="phare">
+<div><p class="qui mono">Le contrôle avant envoi</p><h3>Un contrat, des conclusions, une note rédigés par une IA ?<br><em>Vérifiez avant d'envoyer.</em></h3><p>Collez le texte dans la conversation : chaque article et chaque arrêt cités sont recherchés dans la base officielle, chaque citation comparée mot pour mot. Ce qui n'existe pas est signalé.</p></div>
+<div class="terminal" role="img" aria-label="Exemple de contrôle d'un texte avant envoi">
+<div><span class="p">verifier_references</span> <span class="d">4 références du projet de contrat</span></div>
+<div><span class="ok">[OK]</span> Code civil, art. 1231-5 (clause pénale)</div>
+<div><span class="p">[ATTENTION]</span> Code de commerce, art. L441-10 : abrogé au 01/01/2027</div>
+<div><span class="ok">[OK]</span> RGPD, art. 28 (sous-traitant)</div>
+<div><span class="ko">[INTROUVABLE]</span> Cass. com., n° 21-99.999</div>
+<div class="d">     → 1 à corriger, 1 à mettre à jour avant envoi</div>
+</div>
+</div>
+</div>
+<div class="usages-cta"><a class="btn btn-1" href="#installer">Essayer gratuitement</a><a class="btn btn-2" href="#tarifs">Voir les tarifs</a></div>
+</section>
+
 <section id="methode">
-<div class="titre"><span class="num">§ 1</span><div><h2>Chercher, citer, vérifier.</h2></div><p>Le serveur impose une méthode à l'assistant. Il ne répond jamais de mémoire : il lit les textes, puis prouve ce qu'il avance.</p></div>
+<div class="titre"><span class="num">§ 2</span><div><h2>Chercher, citer, vérifier.</h2></div><p>Le serveur impose une méthode à l'assistant. Il ne répond jamais de mémoire : il lit les textes, puis prouve ce qu'il avance.</p></div>
 <div class="etapes">
 <div><b>01 · CHERCHER</b><h3>Dans les textes officiels</h3><p>Recherche plein texte dans 5 millions d'articles et 1,2 million de décisions, à la date des faits.</p></div>
 <div><b>02 · CITER</b><h3>Après chaque affirmation</h3><p>Article, numéro de pourvoi ou CELEX, lien Légifrance ou EUR-Lex et version utilisée, puis un bloc « Sources ».</p></div>
@@ -449,7 +537,7 @@ PAGE = """<!doctype html>
 </section>
 
 <section id="sources">
-<div class="titre"><span class="num">§ 2</span><div><h2>Les sources officielles,<br>mises à jour chaque nuit.</h2></div><p>Données ouvertes de la DILA (Légifrance) et de l'Office des publications de l'Union européenne, rechargées automatiquement tous les jours.</p></div>
+<div class="titre"><span class="num">§ 3</span><div><h2>Les sources officielles,<br>mises à jour chaque nuit.</h2></div><p>Données ouvertes de la DILA (Légifrance) et de l'Office des publications de l'Union européenne, rechargées automatiquement tous les jours.</p></div>
 <div class="sources">{{sources}}</div>
 </section>
 </div>
@@ -474,7 +562,7 @@ PAGE = """<!doctype html>
 
 <div class="wrap">
 <section id="tarifs">
-<div class="titre"><span class="num">§ 3</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
+<div class="titre"><span class="num">§ 4</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
 <div class="tarifs">
 <div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 11 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
 <div class="offre vedette"><span class="etiquette">Recommandé</span><h3>Abonnement</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
@@ -483,7 +571,7 @@ PAGE = """<!doctype html>
 </section>
 
 <section id="installer">
-<div class="titre"><span class="num">§ 4</span><div><h2>Installer en 30 secondes.</h2></div><p>Une adresse à coller, rien à télécharger. Avec l'abonnement, remplacez-la par votre adresse personnelle.</p></div>
+<div class="titre"><span class="num">§ 5</span><div><h2>Installer en 30 secondes.</h2></div><p>Une adresse à coller, rien à télécharger. Avec l'abonnement, remplacez-la par votre adresse personnelle.</p></div>
 <div class="install">
 <div><h3>Claude</h3><ol><li>Paramètres, puis <b>Connecteurs</b></li><li><b>Ajouter un connecteur personnalisé</b></li><li>URL : <code>{{site}}/mcp</code></li><li>Demander : « Que dit l'article 1240 du Code civil ? »</li></ol></div>
 <div><h3>ChatGPT</h3><ol><li>Paramètres, puis <b>Applications et connecteurs</b></li><li>Selon l'offre, activer le <b>mode développeur</b></li><li><b>Créer</b> un connecteur, URL ci-dessus, sans authentification</li><li>Le choisir dans le menu des outils</li></ol></div>
@@ -494,12 +582,12 @@ PAGE = """<!doctype html>
 </section>
 
 <section id="outils">
-<div class="titre"><span class="num">§ 5</span><div><h2>Onze outils pour l'assistant.</h2></div></div>
+<div class="titre"><span class="num">§ 6</span><div><h2>Onze outils pour l'assistant.</h2></div></div>
 <div class="outils">{{outils}}</div>
 </section>
 
 <section id="faq">
-<div class="titre"><span class="num">§ 6</span><div><h2>Questions fréquentes.</h2></div></div>
+<div class="titre"><span class="num">§ 7</span><div><h2>Questions fréquentes.</h2></div></div>
 <div class="faq">{{faq}}</div>
 <p class="note"><b>Information juridique, pas conseil.</b> La version qui fait foi est celle de <a href="https://www.legifrance.gouv.fr">Légifrance</a> ou d'<a href="https://eur-lex.europa.eu">EUR-Lex</a>. Jurisprudence non exhaustive : seules les décisions diffusées en open data y figurent (cours d'appel jusqu'à fin 2023). Pour un cas concret, consultez un avocat.</p>
 </section>
