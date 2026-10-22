@@ -246,10 +246,10 @@ def message_essai():
             % (abonnement.ESSAI_PAR_JOUR, abonnement.PRIX, abonnement.PLAFOND_ABONNE, abonnement.SITE))
 
 
-def message_plafond():
-    return ("Plafond quotidien de l'abonnement atteint : %d requêtes par jour et par adresse personnelle (usage "
-            "personnel, voir les CGV). Il repart demain (minuit UTC). Si l'adresse a pu être partagée, la régénérer "
-            "sur %s/compte ." % (abonnement.PLAFOND_ABONNE, abonnement.SITE))
+def message_plafond(plafond):
+    return ("Plafond quotidien de l'abonnement atteint : %d requêtes par jour et par adresse personnelle (voir les "
+            "CGV). Il repart demain (minuit UTC). Si l'adresse a pu être partagée, la régénérer sur %s/compte ."
+            % (plafond, abonnement.SITE))
 
 
 MESSAGES_STATUT = {
@@ -295,9 +295,9 @@ class Garde:
                     return await json_brut(send, abonnement.json_rpc_erreur(ids, MESSAGES_STATUT[abonne["statut"]] % abonnement.SITE))
                 if ids and abonne is not None:
                     ok, _ = await asyncio.get_running_loop().run_in_executor(
-                        None, abonnement.consommer_abonne, abonne["abonnement"], len(ids))
+                        None, abonnement.consommer_abonne, abonne["abonnement"], len(ids), abonnement.offre_de(abonne)["plafond"])
                     if not ok:
-                        return await json_brut(send, abonnement.json_rpc_erreur(ids, message_plafond()))
+                        return await json_brut(send, abonnement.json_rpc_erreur(ids, message_plafond(abonnement.offre_de(abonne)["plafond"])))
                 elif ids:
                     ok, _ = await asyncio.get_running_loop().run_in_executor(None, abonnement.consommer_essai, ip, len(ids))
                     if not ok:
@@ -382,16 +382,19 @@ def routes_abonnement(page):
     async def formulaire(request):
         if not abonnement.actif():
             return ferme()
+        offre = request.query_params.get("offre", "particulier")
+        offre = offre if offre in abonnement.OFFRES else "particulier"
         if request.method == "GET":
-            return vue(page.page_abonnement())
+            return vue(page.page_abonnement(offre=offre))
         f = await request.form()
+        offre = f.get("offre") if f.get("offre") in abonnement.OFFRES else offre
         if f.get("cgv") != "1" or f.get("execution") != "1":
-            return vue(page.page_abonnement("Cochez les deux cases pour continuer."), 400)
+            return vue(page.page_abonnement("Cochez les deux cases pour continuer.", offre), 400)
         try:
-            session = await abonnement.creer_session(abonnement.maintenant())
+            session = await abonnement.creer_session(abonnement.maintenant(), offre)
         except abonnement.ErreurStripe as exc:
             logging.getLogger("droit").error("Checkout : %s", exc)
-            return vue(page.page_abonnement("Le paiement est momentanément indisponible, réessayez dans un instant."), 502)
+            return vue(page.page_abonnement("Le paiement est momentanément indisponible, réessayez dans un instant.", offre), 502)
         return RedirectResponse(session["url"], status_code=303)
 
     async def merci(request):

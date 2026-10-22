@@ -20,6 +20,7 @@ PRIX = os.environ.get("DROIT_PRIX", "4,99")
 CENTIMES = int(round(float(PRIX.replace(",", ".")) * 100))
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
 PLAFOND_ABONNE = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
+PLAFOND_PRO = int(os.environ.get("DROIT_PLAFOND_PRO", "3000"))
 SECRET = os.environ.get("DROIT_SECRET", "").encode()
 STRIPE_CLE = os.environ.get("DROIT_STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK = os.environ.get("DROIT_STRIPE_WEBHOOK_SECRET", "")
@@ -30,6 +31,28 @@ RESEND_CLE = os.environ.get("DROIT_RESEND_API_KEY", "")
 RESEND_API = os.environ.get("DROIT_RESEND_API", "https://api.resend.com")
 EXPEDITEUR = os.environ.get("DROIT_EMAIL_FROM", "Droit français sourcé <droit@studjoow.com>")
 APP = "droit"
+
+
+def _centimes(prix):
+    return int(round(float(prix.replace(",", ".")) * 100))
+
+
+OFFRES = {
+    "particulier": {"nom": "Particulier", "prix": PRIX, "intervalle": "month", "plafond": PLAFOND_ABONNE,
+                    "price_id": os.environ.get("DROIT_STRIPE_PRICE_ID", ""), "pro": False},
+    "pro": {"nom": "Pro", "prix": os.environ.get("DROIT_PRIX_PRO", "19"), "intervalle": "month", "plafond": PLAFOND_PRO,
+            "price_id": os.environ.get("DROIT_STRIPE_PRICE_PRO", ""), "pro": True},
+    "pro-an": {"nom": "Pro annuel", "prix": os.environ.get("DROIT_PRIX_PRO_AN", "190"), "intervalle": "year",
+               "plafond": PLAFOND_PRO, "price_id": os.environ.get("DROIT_STRIPE_PRICE_PRO_AN", ""), "pro": True},
+}
+
+
+def offre_de(row):
+    try:
+        cle = row["offre"]
+    except (IndexError, KeyError):
+        cle = "particulier"
+    return OFFRES.get(cle or "particulier", OFFRES["particulier"])
 
 ACTIFS = ("active", "trialing")
 SUSPENDUS = ("past_due", "unpaid", "incomplete", "paused")
@@ -54,6 +77,10 @@ def db():
         _con = sqlite3.connect(str(BASE), check_same_thread=False, isolation_level=None, timeout=10)
         _con.row_factory = sqlite3.Row
         _con.executescript(SCHEMA)
+        try:
+            _con.execute("ALTER TABLE cles ADD COLUMN offre TEXT NOT NULL DEFAULT 'particulier'")
+        except sqlite3.OperationalError:
+            pass
         try:
             os.chmod(BASE, 0o600)
         except OSError:
@@ -169,14 +196,14 @@ def consommer_essai(ip, n=1):
         return True, deja + n
 
 
-def consommer_abonne(abonnement, n=1):
+def consommer_abonne(abonnement, n=1, plafond=None):
     """Plafond quotidien par abonné : repère une adresse personnelle partagée."""
     jour = _jour()
     with _verrou:
         c = db()
         row = c.execute("SELECT n FROM usages WHERE abonnement=? AND jour=?", (abonnement, jour)).fetchone()
         deja = row["n"] if row else 0
-        if deja + n > PLAFOND_ABONNE:
+        if deja + n > (plafond or PLAFOND_ABONNE):
             return False, deja
         c.execute("INSERT INTO usages (abonnement, jour, n) VALUES (?, ?, ?) ON CONFLICT(abonnement, jour) DO UPDATE SET n = n + ?",
                   (abonnement, jour, n, n))
@@ -229,13 +256,17 @@ async def stripe(methode, chemin, donnees=None):
     return corps
 
 
-async def creer_session(demande_execution):
-    ligne = ({"price": STRIPE_PRIX_ID, "quantity": 1} if STRIPE_PRIX_ID else {
-        "price_data": {"currency": "eur", "unit_amount": CENTIMES, "recurring": {"interval": "month"},
-                       "product_data": {"name": "Droit by Studjoow : abonnement mensuel"}},
+async def creer_session(demande_execution, offre="particulier"):
+    o = OFFRES[offre]
+    libelle = "Droit by Studjoow : %s" % ("abonnement mensuel" if offre == "particulier" else
+                                           "offre Pro " + ("mensuelle" if o["intervalle"] == "month" else "annuelle"))
+    ligne = ({"price": o["price_id"], "quantity": 1} if o["price_id"] else {
+        "price_data": {"currency": "eur", "unit_amount": _centimes(o["prix"]), "recurring": {"interval": o["intervalle"]},
+                       "product_data": {"name": libelle}},
         "quantity": 1})
-    meta = {"app": APP, "demande_execution": demande_execution}
-    return await stripe("POST", "/v1/checkout/sessions", {
+    meta = {"app": APP, "demande_execution": demande_execution, "offre": offre}
+    extra = {"tax_id_collection": {"enabled": True}, "billing_address_collection": "required"} if o["pro"] else {}
+    return await stripe("POST", "/v1/checkout/sessions", {**extra,
         "mode": "subscription",
         "line_items": [ligne],
         "success_url": SITE + "/merci?session_id={CHECKOUT_SESSION_ID}",
@@ -303,14 +334,16 @@ def enregistrer_abonnement(abo, email=None):
         return None
     sid, client = abo["id"], abo["customer"]
     st = abo.get("status", "")
+    offre = (abo.get("metadata") or {}).get("offre")
+    offre = offre if offre in OFFRES else "particulier"
     c = db()
     with _verrou:
         c.execute(
             "INSERT OR IGNORE INTO cles (abonnement, client, email, statut, statut_stripe, version, hash, fin_periode,"
-            " resiliation_prevue, demande_execution, cree_le, maj_le) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)",
+            " resiliation_prevue, demande_execution, cree_le, maj_le, offre) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)",
             (sid, client, email, statut_de(st), st, empreinte(cle_de(sid, 1)), _fin_periode(abo),
              _resiliation(abo), (abo.get("metadata") or {}).get("demande_execution"),
-             maintenant(), maintenant()))
+             maintenant(), maintenant(), offre))
         c.execute(
             "UPDATE cles SET statut=?, statut_stripe=?, fin_periode=COALESCE(?, fin_periode), resiliation_prevue=?,"
             " email=COALESCE(email, ?), maj_le=? WHERE abonnement=?",
@@ -415,7 +448,8 @@ async def envoyer_cle_si_besoin(abonnement):
     url = adresse(cle_de(abonnement, row["version"]))
     ok = await envoyer_email(row["email"], "Votre adresse personnelle Droit français sourcé", _gabarit(
         "Votre abonnement est actif", [
-            "Merci pour votre abonnement à %s € par mois, sans engagement." % PRIX,
+            "Merci pour votre abonnement %s à %s € par %s, sans engagement." % (
+                offre_de(row)["nom"], offre_de(row)["prix"], "mois" if offre_de(row)["intervalle"] == "month" else "an"),
             "Votre adresse personnelle, à coller comme connecteur dans Claude ou ChatGPT :",
             '<code style="background:#f2f3fb;padding:8px 10px;border-radius:6px;display:inline-block;word-break:break-all">%s</code>' % url,
             "Gardez-la pour vous : elle donne accès à votre abonnement. En cas de doute, régénérez-la depuis "

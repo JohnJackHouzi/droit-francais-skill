@@ -110,7 +110,8 @@ Les bases françaises sont reconstruites à partir des dumps officiels de la DIL
 | Offre | Prix | Ce qui est inclus |
 |---|---|---|
 | Essai | 0 € | 20 appels d'outils par jour et par IP sur l'adresse publique, sans inscription |
-| Abonnement | 4,99 € / mois, sans engagement | Adresse personnelle, 500 appels d'outils par jour (usage personnel), résiliable à tout moment : [s'abonner](https://droit.studjoow.com/abonnement) |
+| Particulier | 4,99 € / mois, sans engagement | Adresse personnelle, 500 appels d'outils par jour (usage personnel), résiliable à tout moment : [s'abonner](https://droit.studjoow.com/abonnement) |
+| Pro | 19 € / mois ou 190 € / an | 3 000 appels d'outils par jour, facture au nom de l'entreprise, support prioritaire : [offre Pro](https://droit.studjoow.com/abonnement?offre=pro) |
 | Auto-hébergé | 0 € | Code libre (MIT), vos serveurs et vos bases : [voir plus bas](#héberger-son-propre-serveur) |
 
 Le code est libre, l'hébergement est clé en main : l'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour chaque nuit. Conditions : [CGV](https://droit.studjoow.com/cgv), [confidentialité](https://droit.studjoow.com/confidentialite), [mentions légales](https://droit.studjoow.com/mentions-legales).
@@ -177,6 +178,8 @@ Un serveur auto-hébergé est **illimité par défaut** : l'essai et l'abonnemen
 | `DROIT_STRIPE_PRICE_ID` | Prix Stripe mensuel ; vide : prix créé à la volée depuis `DROIT_PRIX` |
 | `DROIT_STRIPE_PORTAL_CONFIG` | Configuration du portail client Stripe (`bpc_...`) ; vide : le serveur crée la sienne au premier usage et la garde en base |
 | `DROIT_PRIX` / `DROIT_ESSAI_PAR_JOUR` / `DROIT_PLAFOND_ABONNE` | `4,99` / `20` / `500` (appels d'outils par jour et par abonné) |
+| `DROIT_PRIX_PRO` / `DROIT_PRIX_PRO_AN` / `DROIT_PLAFOND_PRO` | `19` / `190` / `3000` |
+| `DROIT_STRIPE_PRICE_PRO` / `DROIT_STRIPE_PRICE_PRO_AN` | Prix Stripe des offres Pro ; vides : créés à la volée |
 | `DROIT_RESEND_API_KEY` / `DROIT_EMAIL_FROM` | Envoi de l'adresse personnelle et des liens d'accès par Resend |
 | `DROIT_MEDIATEUR` | Coordonnées du médiateur de la consommation affichées dans les CGV |
 

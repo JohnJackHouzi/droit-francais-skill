@@ -8,6 +8,14 @@ REPO = "https://github.com/JohnJackHouzi/droit-francais-skill"
 PRIX = os.environ.get("DROIT_PRIX", "4,99")
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
 PLAFOND = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
+PRIX_PRO = os.environ.get("DROIT_PRIX_PRO", "19")
+PRIX_PRO_AN = os.environ.get("DROIT_PRIX_PRO_AN", "190")
+PLAFOND_PRO = int(os.environ.get("DROIT_PLAFOND_PRO", "3000"))
+OFFRES_PAGE = {
+    "particulier": ("Particulier", PRIX, "mois", PLAFOND),
+    "pro": ("Pro", PRIX_PRO, "mois", PLAFOND_PRO),
+    "pro-an": ("Pro annuel", PRIX_PRO_AN, "an", PLAFOND_PRO),
+}
 LIEN_ABONNEMENT = os.environ.get("DROIT_LIEN_ABONNEMENT", "").strip()
 STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#org", "name": "Studjoow", "url": "https://studjoow.com",
           "description": "Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.",
@@ -34,6 +42,11 @@ FAQ = [
      "%s € par mois, sans engagement. Après le paiement, vous recevez une adresse personnelle à coller comme "
      "connecteur dans Claude ou ChatGPT, avec %d requêtes par jour : bien au-delà d'un usage intensif. Résiliable à tout "
      "moment depuis la page Mon compte, avec effet à la fin du mois payé." % (PRIX, PLAFOND)),
+    ("Quelle différence entre Particulier et Pro ?",
+     "Les deux donnent accès aux mêmes sources et aux mêmes outils. L'offre Pro (%s € par mois, ou %s € par an) "
+     "monte à %d requêtes par jour, émet les factures au nom de votre entreprise et inclut un support prioritaire "
+     "par e-mail : elle est pensée pour un usage professionnel quotidien (juristes, RH, DPO, avocats, TPE)."
+     % (PRIX_PRO, PRIX_PRO_AN, PLAFOND_PRO)),
     ("Que se passe-t-il quand l'essai gratuit est épuisé ?",
      "L'assistant reçoit un message clair indiquant que le quota du jour est atteint, avec le lien d'abonnement. "
      "L'essai repart le lendemain à minuit (UTC)."),
@@ -168,6 +181,14 @@ def json_ld():
               "priceSpecification": {"@type": "UnitPriceSpecification", "price": prix, "priceCurrency": "EUR",
                                      "billingDuration": "P1M", "unitText": "MONTH"},
               "description": "%d requêtes par jour par adresse personnelle, sans engagement" % PLAFOND},
+             {"@type": "Offer", "name": "Pro", "price": PRIX_PRO.replace(",", "."), "priceCurrency": "EUR",
+              "priceSpecification": {"@type": "UnitPriceSpecification", "price": PRIX_PRO.replace(",", "."),
+                                     "priceCurrency": "EUR", "billingDuration": "P1M", "unitText": "MONTH"},
+              "description": "%d requêtes par jour, facture au nom de l'entreprise, support par e-mail" % PLAFOND_PRO},
+             {"@type": "Offer", "name": "Pro annuel", "price": PRIX_PRO_AN.replace(",", "."), "priceCurrency": "EUR",
+              "priceSpecification": {"@type": "UnitPriceSpecification", "price": PRIX_PRO_AN.replace(",", "."),
+                                     "priceCurrency": "EUR", "billingDuration": "P1Y", "unitText": "ANN"},
+              "description": "Offre Pro payée à l'année, deux mois offerts"},
          ],
          "author": {"@id": "https://studjoow.com/#org"}, "publisher": {"@id": "https://studjoow.com/#org"},
          "description": DESCRIPTION, "featureList": [o[1] for o in OUTILS]},
@@ -309,7 +330,7 @@ section{padding:96px 0 0}
 .terminal .p{color:#e0539f}.terminal .ok{color:#34d39b}.terminal .ko{color:#ff6b7a}.terminal .d{color:#8a90a3}
 
 /* tarifs */
-.tarifs{display:grid;grid-template-columns:1fr 1.15fr .85fr;gap:18px;margin-left:164px;align-items:stretch}
+.tarifs{display:grid;grid-template-columns:.9fr 1.05fr 1.05fr;gap:18px;margin-left:164px;align-items:stretch}
 .offre{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:28px 26px;display:flex;flex-direction:column}
 .offre h3{font:600 13px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
 .prix{font-family:var(--serif);font-size:62px;line-height:1;margin:0}.prix small{font:500 15px var(--sans);color:var(--muted);margin-left:6px}
@@ -319,7 +340,20 @@ section{padding:96px 0 0}
 .offre.vedette{border:1.5px solid var(--accent);position:relative;box-shadow:0 30px 60px -36px var(--accent)}
 .offre.vedette .etiquette{position:absolute;top:-12px;left:24px;background:var(--accent);color:var(--onaccent);font:600 11px var(--mono);
   letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:6px}
-.offre.libre{background:transparent;border-style:dashed}
+.offre.pro{background:var(--deep);border-color:var(--deep);color:#f7f8fb;position:relative;overflow:hidden}
+.offre.pro::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px 220px at 100% 0%,rgba(224,83,159,.3),transparent 70%)}
+.offre.pro>*{position:relative}
+.offre.pro h3{color:#8a90a3}.offre.pro ul{color:#c9cdd8}.offre.pro li::before{color:#e0539f}
+.offre.pro .etiquette{position:absolute;top:-12px;left:24px;background:#e0539f;color:#040e30;font:600 11px var(--mono);
+  letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:6px;z-index:1}
+.offre.pro{overflow:visible}
+.offre .annuel{margin:8px 0 0;font-size:13.5px;color:#e0539f}
+.offre.pro .btn-1{background:#e0539f;color:#040e30;box-shadow:none}
+.btn-lien{background:transparent;color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:500;padding:12px 0 0;justify-content:center}
+.libre-bande{margin:18px 0 0 164px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  border:1px dashed var(--line);border-radius:16px;padding:18px 22px}
+.libre-bande b{display:block;font:600 13px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.libre-bande span{color:var(--ink);font-size:15px}
 
 /* usages */
 .usages-gain{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:0 0 34px 164px;border-top:1px solid var(--fg)}
@@ -387,7 +421,7 @@ footer .marque{color:var(--muted);font-size:13.5px}footer .logo-sj{height:22px}
   .chiffres{grid-template-columns:repeat(2,1fr)}.chiffres div:nth-child(3){border-left:0;padding-left:0}
   .chiffres div:nth-child(n+3){border-top:1px solid var(--line)}
   .titre{grid-template-columns:1fr;gap:6px}.titre p{grid-column:1}.titre .num{font-size:40px}
-  .etapes,.sources,.tarifs,.install,.outils,.faq,.note{margin-left:0}
+  .etapes,.sources,.tarifs,.install,.outils,.faq,.note,.libre-bande{margin-left:0}
   .etapes,.tarifs,.install{grid-template-columns:1fr;gap:18px}
   .sources div{grid-template-columns:90px 1fr}.sources span{grid-column:2}
   .outils{columns:1}.bande .wrap{grid-template-columns:1fr;gap:32px}
@@ -398,10 +432,11 @@ footer .marque{color:var(--muted);font-size:13.5px}footer .logo-sj{height:22px}
 """
 
 
-def _boutons_abonnement(classe="btn btn-1"):
+def _boutons_abonnement(classe="btn btn-1", offre="particulier", texte=None):
     if LIEN_ABONNEMENT:
-        return '<a class="%s" href="%s" rel="nofollow">S\'abonner pour %s € / mois</a>' % (
-            classe, html.escape(LIEN_ABONNEMENT), PRIX)
+        lien = LIEN_ABONNEMENT + ("" if offre == "particulier" or "?" in LIEN_ABONNEMENT else "?offre=" + offre)
+        return '<a class="%s" href="%s" rel="nofollow">%s</a>' % (
+            classe, html.escape(lien), html.escape(texte or "S'abonner pour %s € / mois" % PRIX))
     return '<span class="%s" aria-disabled="true">Abonnement : ouverture prochaine</span>' % classe
 
 
@@ -431,6 +466,9 @@ def render(etat_fn):
         "fonts": FONTS, "css": CSS, "etat": etat, "chiffres": chiffres, "sources": sources, "outils": outils,
         "faq": faq, "usages": usages, "plafond": nombre(PLAFOND), "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
         "abonner": _boutons_abonnement(), "abonner2": _boutons_abonnement("btn btn-1"),
+        "abonner_pro": _boutons_abonnement("btn btn-1", "pro", "Choisir Pro mensuel"),
+        "abonner_pro_an": _boutons_abonnement("btn btn-lien", "pro-an", "Payer à l'année : %s €" % PRIX_PRO_AN),
+        "prix_pro": PRIX_PRO, "prix_pro_an": PRIX_PRO_AN, "plafond_pro": nombre(PLAFOND_PRO),
     }
     page = PAGE
     for k, val in v.items():
@@ -566,9 +604,10 @@ PAGE = """<!doctype html>
 <div class="titre"><span class="num">§ 4</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
 <div class="tarifs">
 <div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 12 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
-<div class="offre vedette"><span class="etiquette">Recommandé</span><h3>Abonnement</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
-<div class="offre libre"><h3>Auto-hébergé</h3><p class="prix">0 €</p><ul><li>Code libre, licence MIT</li><li>Votre serveur, vos bases</li><li>Environ 70 Go de disque</li></ul><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
+<div class="offre vedette"><span class="etiquette">Le plus simple</span><h3>Particulier</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
+<div class="offre pro"><span class="etiquette">Professionnels</span><h3>Pro</h3><p class="prix">{{prix_pro}} €<small>/ mois</small></p><p class="annuel">ou {{prix_pro_an}} € par an, deux mois offerts</p><ul><li>{{plafond_pro}} requêtes par jour</li><li>Facture au nom de votre entreprise</li><li>Usage professionnel autorisé</li><li>Support prioritaire par e-mail</li></ul>{{abonner_pro}}{{abonner_pro_an}}</div>
 </div>
+<div class="libre-bande"><div><b>Auto-hébergé · 0 €</b><span>Code libre sous licence MIT : votre serveur, vos bases, environ 70 Go de disque.</span></div><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
 </section>
 
 <section id="installer">
@@ -622,6 +661,7 @@ def llms(etat_fn):
         "Adresse publique du serveur MCP (Streamable HTTP, sans authentification) : %s/mcp" % SITE,
         "Essai gratuit : %d appels d'outils par jour et par IP sur l'adresse publique." % ESSAI_PAR_JOUR,
         "Abonnement : %s € par mois, sans engagement, adresse personnelle %s/mcp/<clé>, %d requêtes par jour : %s/abonnement" % (PRIX, SITE, PLAFOND, SITE),
+        "Offre Pro : %s € par mois ou %s € par an, %d requêtes par jour, facture au nom de l'entreprise : %s/abonnement?offre=pro" % (PRIX_PRO, PRIX_PRO_AN, PLAFOND_PRO, SITE),
         "Auto-hébergement : gratuit, code sous licence MIT (%s)." % REPO,
         "Mise à jour des bases : %s" % (r["maj"] or "voir %s/health" % SITE),
         "",
@@ -674,6 +714,9 @@ CSS_DOC = """
 .statut.actif{color:var(--ok)}.statut.suspendu{color:#f99c00}.statut.revoque{color:var(--ko)}
 dl.fiche-compte{display:grid;grid-template-columns:170px 1fr;gap:8px 16px;margin:18px 0;font-size:15px}
 dl.fiche-compte dt{color:var(--muted)}dl.fiche-compte dd{margin:0}
+.choix-offres{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0}
+.choix{font:500 13.5px var(--sans);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--ink);background:var(--paper)}
+.choix.actif{border-color:var(--accent);color:var(--accent);font-weight:600}
 form.ligne{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}form.ligne .champ{flex:1;min-width:220px}
 @media (max-width:480px){dl.fiche-compte{grid-template-columns:1fr}}
 """
@@ -722,18 +765,29 @@ def page_ferme():
                    '<p><a class="btn btn-2" href="/">Retour à l\'accueil</a></p>' % SITE, indexer=False)
 
 
-def page_abonnement(erreur=None):
+def page_abonnement(erreur=None, offre="particulier"):
+    nom, prix, periode, plafond = OFFRES_PAGE.get(offre, OFFRES_PAGE["particulier"])
     alerte = '<p class="alerte">%s</p>' % html.escape(erreur) if erreur else ""
+    pro = offre != "particulier"
+    avantages = ("<li>%s requêtes par jour par adresse personnelle (et 60 par minute au plus)</li>" % nombre(plafond)
+                 + ("<li>Facture au nom de votre entreprise : raison sociale et numéro de TVA demandés au paiement</li>"
+                    "<li>Support prioritaire par e-mail</li>" if pro else "")
+                 + "<li>Toutes les sources, les 12 outils, bases mises à jour chaque nuit</li>"
+                 + "<li>Sans engagement : résiliable à tout moment depuis votre compte, effet à la fin de la période payée</li>"
+                 + "<li>Prix net : Studjoow facture depuis Israël, sans TVA hors d'Israël</li>")
+    choix = "".join(
+        '<a class="choix%s" href="/abonnement?offre=%s">%s · %s €/%s</a>' % (" actif" if k == offre else "", k, n, p, per)
+        for k, (n, p, per, _) in OFFRES_PAGE.items())
     return gabarit("S'abonner", """<h1>S'abonner.</h1>
-<p>Accès personnel au droit français et européen officiel, dans Claude, ChatGPT et tout assistant compatible MCP.</p>
+<p>Accès au droit français et européen officiel, dans Claude, ChatGPT et tout assistant compatible MCP.</p>
+<nav class="choix-offres" aria-label="Offres">%s</nav>
 <div class="carte">
-<p class="prix">%s €<small>/ mois</small></p>
-<ul><li>Adresse personnelle : %s requêtes par jour, soit bien plus qu'un usage intensif (et 60 par minute au plus)</li>
-<li>Toutes les sources, les 12 outils, bases mises à jour chaque nuit</li>
-<li>Sans engagement : résiliable à tout moment depuis votre compte</li>
-<li>Prix net : Studjoow facture depuis Israël, sans TVA hors d'Israël</li></ul>
+<p class="mini">Offre %s</p>
+<p class="prix">%s €<small>/ %s</small></p>
+<ul>%s</ul>
 %s
-<form method="post" action="/abonnement">
+<form method="post" action="/abonnement?offre=%s">
+<input type="hidden" name="offre" value="%s">
 <label class="coche"><input type="checkbox" name="cgv" value="1" required><span>J'accepte les <a href="/cgv" target="_blank">conditions générales de vente</a> et j'ai lu la <a href="/confidentialite" target="_blank">politique de confidentialité</a>.</span></label>
 <label class="coche"><input type="checkbox" name="execution" value="1" required><span>Je demande expressément l'accès immédiat au service, avant la fin du délai de rétractation de 14 jours. Si je me rétracte, je reste redevable du montant correspondant au service fourni jusque-là (art. L221-25 du Code de la consommation).</span></label>
 <p><button class="btn btn-1" type="submit">Payer %s € et recevoir mon adresse</button></p>
@@ -741,7 +795,8 @@ def page_abonnement(erreur=None):
 </form>
 </div>
 <p class="mini">Déjà abonné ? <a href="/compte">Gérer mon abonnement</a>. Le code reste libre : <a href="%s">héberger son propre serveur</a> est gratuit.</p>
-""" % (PRIX, nombre(PLAFOND), alerte, PRIX, REPO), "Abonnement à %s € par mois au serveur MCP Droit français sourcé." % PRIX, indexer=False)
+""" % (choix, html.escape(nom), prix, periode, avantages, alerte, offre, offre, prix, REPO),
+        "Abonnement %s à %s € par %s au serveur MCP Droit français sourcé." % (nom, prix, periode), indexer=False)
 
 
 def _copier(url):
@@ -792,6 +847,15 @@ def _date_fr(s):
     return "%s/%s/%s" % (s[8:10], s[5:7], s[:4]) if s else "inconnue"
 
 
+def _offre_ligne(row):
+    try:
+        cle = row["offre"] or "particulier"
+    except (IndexError, KeyError):
+        cle = "particulier"
+    nom, prix, periode, plafond = OFFRES_PAGE.get(cle, OFFRES_PAGE["particulier"])
+    return "%s · %s € par %s · %s requêtes par jour" % (nom, prix, periode, nombre(plafond))
+
+
 def page_gestion(row, url, nouvelle=False):
     e = html.escape
     libelles = {"actif": "Actif", "suspendu": "Suspendu (paiement en échec)", "revoque": "Terminé"}
@@ -808,13 +872,13 @@ def page_gestion(row, url, nouvelle=False):
     return gabarit("Mon abonnement", """<h1>Mon abonnement.</h1>
 <div class="carte">
 <p><span class="statut %s">%s</span></p>
-<dl class="fiche-compte"><dt>E-mail</dt><dd>%s</dd><dt>Échéance</dt><dd>%s</dd><dt>Abonné depuis</dt><dd>%s</dd></dl>
+<dl class="fiche-compte"><dt>Offre</dt><dd>%s</dd><dt>E-mail</dt><dd>%s</dd><dt>Échéance</dt><dd>%s</dd><dt>Abonné depuis</dt><dd>%s</dd></dl>
 %s
 <form class="ligne" method="post" action="/compte/portail">%s<button class="btn btn-1" type="submit">Gérer le paiement ou résilier</button></form>
 <form class="ligne" method="post" action="/compte/regenerer" onsubmit="return confirm('L\\'adresse actuelle cessera de fonctionner. Continuer ?')">%s<button class="btn btn-2" type="submit">Régénérer mon adresse</button></form>
 <p class="mini">La gestion du paiement, des factures et la résiliation se font sur le portail sécurisé de Stripe. Une résiliation prend effet à la fin de la période payée.</p>
 </div>
-%s""" % (e(row["statut"]), libelles.get(row["statut"], row["statut"]), e(email), fin, _date_fr(row["cree_le"]),
+%s""" % (e(row["statut"]), libelles.get(row["statut"], row["statut"]), e(_offre_ligne(row)), e(email), fin, _date_fr(row["cree_le"]),
          adresse_html, cache, cache, INSTALLER if nouvelle else ""), indexer=False)
 
 
@@ -831,11 +895,11 @@ def cgv():
 <h2>3. Essai gratuit</h2>
 <p>L'adresse publique %(site)s/mcp est utilisable sans inscription dans la limite de %(essai)s appels d'outils par jour et par adresse IP. Cette limite peut évoluer.</p>
 <h2>4. Prix et paiement</h2>
-<p>L'abonnement coûte <b>%(prix)s € par mois</b>, prix net : Studjoow facture depuis Israël (Tax ID 337927834), sans TVA hors d'Israël. Le paiement est mensuel, prélevé par carte via Stripe à la souscription puis à chaque date anniversaire. Toute modification de prix est annoncée par e-mail au moins 30 jours avant de s'appliquer ; l'abonné peut résilier avant.</p>
+<p>Trois formules, prix nets : <b>Particulier, %(prix)s € par mois</b> ; <b>Pro, %(prix_pro)s € par mois</b> ; <b>Pro annuel, %(prix_pro_an)s € par an</b>. Studjoow facture depuis Israël (Tax ID 337927834), sans TVA hors d'Israël. Le paiement est prélevé par carte via Stripe à la souscription puis à chaque échéance, mensuelle ou annuelle selon la formule. Toute modification de prix est annoncée par e-mail au moins 30 jours avant de s'appliquer ; l'abonné peut résilier avant.</p>
 <h2>5. Accès au service</h2>
-<p>Après le paiement, une adresse personnelle est affichée une seule fois et envoyée par e-mail. Elle est strictement personnelle : ne la partagez pas. Elle peut être régénérée à tout moment depuis la page <a href="/compte">Mon compte</a>, l'ancienne cessant alors de fonctionner. L'abonnement est à usage personnel et comprend jusqu'à %(plafond)s appels d'outils par jour et par adresse personnelle, ainsi qu'au plus 60 requêtes par minute ; au-delà, l'accès reprend le lendemain. En cas d'usage manifestement abusif (revente, partage public de l'adresse, extraction massive), Studjoow peut suspendre l'accès après en avoir informé l'abonné.</p>
+<p>Après le paiement, une adresse personnelle est affichée une seule fois et envoyée par e-mail. Elle est strictement personnelle : ne la partagez pas. Elle peut être régénérée à tout moment depuis la page <a href="/compte">Mon compte</a>, l'ancienne cessant alors de fonctionner. Chaque adresse personnelle est réservée à une seule personne et comprend, par jour, jusqu'à %(plafond)s appels d'outils (Particulier) ou %(plafond_pro)s (Pro), et au plus 60 requêtes par minute ; au-delà, l'accès reprend le lendemain. L'offre Pro autorise l'usage professionnel, émet les factures au nom de l'entreprise indiquée au paiement et inclut un support prioritaire par e-mail. En cas d'usage manifestement abusif (revente, partage public de l'adresse, extraction massive), Studjoow peut suspendre l'accès après en avoir informé l'abonné.</p>
 <h2>6. Durée et résiliation</h2>
-<p>L'abonnement est sans engagement et se renouvelle chaque mois. L'abonné peut le résilier à tout moment depuis <a href="/compte">Mon compte</a> (portail Stripe) ; la résiliation prend effet à la fin de la période déjà payée, sans remboursement de la période en cours, hors droit de rétractation. En cas d'échec de paiement, l'accès est suspendu jusqu'à régularisation, puis l'abonnement prend fin si le paiement n'aboutit pas.</p>
+<p>L'abonnement est sans engagement et se renouvelle à chaque échéance (mois ou année). L'abonné peut le résilier à tout moment depuis <a href="/compte">Mon compte</a> (portail Stripe) ; la résiliation prend effet à la fin de la période déjà payée, sans remboursement de la période en cours, hors droit de rétractation. En cas d'échec de paiement, l'accès est suspendu jusqu'à régularisation, puis l'abonnement prend fin si le paiement n'aboutit pas.</p>
 <h2>7. Droit de rétractation</h2>
 <p>Le consommateur dispose d'un délai de 14 jours à compter de la souscription pour se rétracter, sans motif (art. L221-18 du Code de la consommation). Lors de la commande, il demande expressément que le service commence immédiatement, avant la fin de ce délai. S'il se rétracte ensuite, il verse un montant proportionné au service fourni jusqu'à la communication de sa décision (art. L221-25) ; Studjoow rembourse le reste sous 14 jours, par le même moyen de paiement.</p>
 <p>Pour se rétracter, il suffit d'envoyer une déclaration sans ambiguïté à <a href="mailto:%(contact)s">%(contact)s</a>, par exemple avec le formulaire ci-dessous.</p>
@@ -849,7 +913,8 @@ def cgv():
 <p>Les présentes conditions sont soumises au droit français, sans préjudice des dispositions impératives plus protectrices du pays de résidence du consommateur. En cas de difficulté, écrivez d'abord à <a href="mailto:%(contact)s">%(contact)s</a> : nous répondons sous 7 jours ouvrés.</p>
 %(mediation)s
 """ % {"site": SITE, "editeur": html.escape(EDITEUR), "contact": CONTACT, "prix": PRIX, "essai": ESSAI_PAR_JOUR,
-       "mediation": mediation, "plafond": nombre(PLAFOND)}, "Conditions générales de vente de l'abonnement Droit français sourcé.")
+       "mediation": mediation, "plafond": nombre(PLAFOND), "plafond_pro": nombre(PLAFOND_PRO),
+       "prix_pro": PRIX_PRO, "prix_pro_an": PRIX_PRO_AN}, "Conditions générales de vente de l'abonnement Droit français sourcé.")
 
 
 def mentions():
