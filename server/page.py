@@ -1086,58 +1086,116 @@ def page_rapport(job):
 
 
 CSS_OAUTH = """
-.oauth{max-width:520px;margin:36px auto 0}
-.oauth .carte{margin:0}
-.oauth h1{font-size:clamp(34px,5vw,46px);margin:0 0 10px}
-.oauth .qui{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
-.oauth .lien-bouton{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
-.oauth .champ-code{font:600 28px var(--mono);letter-spacing:.35em;text-align:center}
-.oauth .rangee{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
-.oauth .garanties{list-style:none;padding:0;margin:18px 0 0;font-size:13.5px;color:var(--muted);display:grid;gap:6px}
-.oauth .garanties li::before{content:"§ ";color:var(--accent);font-family:var(--serif)}
+:root{--bg:#f2f3fb;--paper:#ffffff;--fg:#1b0b16;--ink:#3a3f4e;--muted:#7e8493;--line:#d8dbe4;--accent:#b1338a;--accent2:#e0539f;--soft:#eddaec;--deep:#040e30;--ko:#bf000f;--ok:#00a06d;
+  --serif:'Instrument Serif',Georgia,serif;--sans:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;--mono:'Geist Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font:16px/1.6 var(--sans);color:var(--fg);background:var(--deep);
+  background-image:radial-gradient(700px 420px at 12% 8%,rgba(177,51,138,.38),transparent 70%),radial-gradient(600px 400px at 95% 100%,rgba(224,83,159,.22),transparent 70%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px}
+.carte-auth{width:100%;max-width:440px;background:var(--paper);border-radius:24px;padding:34px 32px 26px;box-shadow:0 40px 90px -30px rgba(0,0,0,.6)}
+.liaison{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 22px}
+.liaison img{width:56px;height:56px;border-radius:16px;display:block}
+.liaison .assistant{width:56px;height:56px;border-radius:16px;background:var(--soft);color:var(--accent);display:flex;align-items:center;justify-content:center;
+  font:400 28px var(--serif)}
+.liaison .fil{display:flex;gap:5px}.liaison .fil i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.liaison .fil i:nth-child(2){background:var(--accent2)}
+h1{font:400 32px/1.08 var(--serif);text-align:center;margin:0 0 6px;letter-spacing:-.01em}
+.sous{text-align:center;color:var(--muted);font-size:14.5px;margin:0 0 24px}
+label.l{display:block;font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.champ{width:100%;font:16px var(--sans);padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--fg);outline:none;transition:border-color .15s}
+.champ:focus{border-color:var(--accent)}
+.cases{display:flex;gap:8px;justify-content:space-between}
+.cases input{width:100%;max-width:52px;height:60px;text-align:center;font:600 26px var(--mono);border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--fg);outline:none}
+.cases input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(177,51,138,.12)}
+.btn{display:block;width:100%;margin-top:16px;font:600 15.5px var(--sans);border:0;border-radius:12px;padding:15px 18px;cursor:pointer;background:var(--accent);color:#fff;
+  box-shadow:0 12px 26px -14px var(--accent);transition:transform .15s}
+.btn:hover{transform:translateY(-1px)}
+.alerte{background:#fdecee;color:var(--ko);border-radius:10px;padding:10px 14px;font-size:14px;margin:0 0 16px}
+.info{color:var(--ink);font-size:14.5px;margin:0 0 16px;text-align:center}
+.liens{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:20px;font-size:13.5px}
+.liens button{background:none;border:0;padding:0;font:inherit;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.liens button:hover{color:var(--accent)}
+.garanties{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:22px 0 0;padding:16px 0 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.garanties span::before{content:"§ ";color:var(--accent);font-family:var(--serif)}
+.pied{margin-top:20px;font-size:12.5px;color:#8a90a3;text-align:center}.pied a{color:#c9cdd8}
+@media (max-width:420px){.carte-auth{padding:28px 20px 22px}.cases{gap:6px}.cases input{height:54px;font-size:22px}}
 """
+
+
+def _masquer(email):
+    if "@" not in email:
+        return email
+    nom, dom = email.split("@", 1)
+    return nom[:2] + "•" * max(len(nom) - 2, 2) + "@" + dom
+
+
+def _page_auth(titre, contenu):
+    return """<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>%s · Droit by Studjoow</title><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#040e30">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>%s%s</style></head><body>%s
+<p class="pied">Droit by Studjoow · <a href="/">droit.studjoow.com</a> · Information juridique, pas conseil.</p></body></html>""" % (
+        html.escape(titre), FONTS, CSS_OAUTH, contenu)
 
 
 def page_oauth(nom_client, demande, etape="email", email="", erreur=None):
     e = html.escape
     alerte = '<p class="alerte">%s</p>' % e(erreur) if erreur else ""
     cache = '<input type="hidden" name="demande" value="%s">' % e(demande)
+    initiale = e((nom_client or "A").strip()[:1].upper())
+
+    def lien(action, texte, extra=""):
+        return ('<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="%s">%s'
+                '<button type="submit">%s</button></form>' % (cache, action, extra, texte))
+
     if etape == "code":
-        corps = """<p>Si un abonnement actif correspond à <b>%s</b>, un code à 6 chiffres vient d'y être envoyé.</p>%s
-<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="code">
-<input class="champ champ-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" required autofocus>
-<div class="rangee"><button class="btn btn-1" type="submit">Connecter</button></div></form>
-<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="email"><input type="hidden" name="email" value="%s">
-<button class="lien-bouton" type="submit">Renvoyer un code</button></form>""" % (e(email), alerte, cache, cache, e(email))
+        sous = "Code envoyé à <b>%s</b> s'il correspond à un abonnement actif." % e(_masquer(email))
+        corps = """%s<form method="post" action="/oauth/authorize" id="f">%s<input type="hidden" name="action" value="code">
+<input type="hidden" name="code" id="code">
+<label class="l">Code à 6 chiffres</label>
+<div class="cases" id="cases">%s</div>
+<button class="btn" type="submit">Connecter</button></form>
+<div class="liens">%s%s</div>
+<script>
+(function(){var c=[].slice.call(document.querySelectorAll('#cases input')),h=document.getElementById('code');
+function maj(){h.value=c.map(function(i){return i.value}).join('')}
+c.forEach(function(i,k){
+ i.addEventListener('input',function(){var v=i.value.replace(/\\D/g,'');if(v.length>1){v.split('').forEach(function(d,j){if(c[k+j])c[k+j].value=d});(c[Math.min(k+v.length,5)]).focus()}else{i.value=v;if(v&&k<5)c[k+1].focus()}maj();if(h.value.length===6)document.getElementById('f').submit()});
+ i.addEventListener('keydown',function(ev){if(ev.key==='Backspace'&&!i.value&&k>0){c[k-1].focus()}});
+ i.addEventListener('paste',function(ev){var t=(ev.clipboardData||window.clipboardData).getData('text').replace(/\\D/g,'').slice(0,6);if(!t)return;ev.preventDefault();
+  t.split('').forEach(function(d,j){if(c[j])c[j].value=d});maj();(c[t.length]||c[5]).focus();if(t.length===6)document.getElementById('f').submit()});
+});c[0].focus();})();
+</script>""" % (alerte, cache, "".join('<input inputmode="numeric" autocomplete="%s" maxlength="1" aria-label="Chiffre %d">'
+                                       % ("one-time-code" if k == 0 else "off", k + 1) for k in range(6)),
+                lien("email", "Renvoyer un code", '<input type="hidden" name="email" value="%s">' % e(email)),
+                lien("retour", "Changer d'e-mail"))
     elif etape == "cle":
-        corps = """<p>Collez l'adresse personnelle reçue après votre paiement.</p>%s
-<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="cle">
-<input class="champ" name="adresse" placeholder="%s/mcp/..." autocomplete="off" required autofocus>
-<div class="rangee"><button class="btn btn-1" type="submit">Connecter</button></div></form>
-<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="retour">
-<button class="lien-bouton" type="submit">Recevoir plutôt un code par e-mail</button></form>""" % (alerte, cache, SITE, cache)
+        sous = "Collez l'adresse personnelle reçue après votre paiement."
+        corps = """%s<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="cle">
+<label class="l" for="a">Adresse personnelle</label>
+<input class="champ" id="a" name="adresse" placeholder="%s/mcp/..." autocomplete="off" required autofocus>
+<button class="btn" type="submit">Connecter</button></form>
+<div class="liens">%s</div>""" % (alerte, cache, SITE, lien("retour", "Recevoir plutôt un code par e-mail"))
     else:
-        corps = """<p>Saisissez l'e-mail utilisé pour votre abonnement : vous recevrez un code de connexion.</p>%s
-<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="email">
-<input class="champ" type="email" name="email" value="%s" placeholder="vous@exemple.fr" autocomplete="email" required autofocus>
-<div class="rangee"><button class="btn btn-1" type="submit">Recevoir mon code</button></div></form>
-<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="cle">
-<button class="lien-bouton" type="submit">J'ai mon adresse personnelle</button></form>""" % (alerte, cache, e(email), cache)
-    return gabarit("Connexion", """<style>%s</style><div class="oauth">
-<p class="qui">Connexion</p>
-<h1>Connecter %s à Droit by Studjoow.</h1>
-<div class="carte">%s
-<ul class="garanties"><li>L'assistant pourra consulter les textes officiels avec votre abonnement.</li>
-<li>Aucun mot de passe : un code à usage unique, valable 10 minutes.</li>
-<li>Déconnexion possible à tout moment depuis <a href="/compte">votre compte</a>.</li></ul>
-<form method="post" action="/oauth/authorize" class="rangee">%s<input type="hidden" name="action" value="refuser">
-<button class="lien-bouton" type="submit">Annuler et revenir à l'assistant</button></form>
-</div>
-<p class="mini">Pas encore abonné ? <a href="/abonnement">Voir les offres</a>.</p>
-</div>""" % (CSS_OAUTH, e(nom_client), corps, cache), "Connexion de votre assistant à Droit by Studjoow.", indexer=False)
+        sous = "Saisissez l'e-mail de votre abonnement : vous recevrez un code de connexion."
+        corps = """%s<form method="post" action="/oauth/authorize">%s<input type="hidden" name="action" value="email">
+<label class="l" for="m">Votre e-mail</label>
+<input class="champ" id="m" type="email" name="email" value="%s" placeholder="vous@exemple.fr" autocomplete="email" required autofocus>
+<button class="btn" type="submit">Recevoir mon code</button></form>
+<div class="liens">%s</div>""" % (alerte, cache, e(email), lien("cle", "J'ai mon adresse personnelle"))
+    contenu = """<main class="carte-auth">
+<div class="liaison"><img src="/static/icones/icone-192.png" alt="Droit by Studjoow"><span class="fil"><i></i><i></i><i></i></span><span class="assistant" aria-hidden="true">%s</span></div>
+<h1>Connecter %s</h1>
+<p class="sous">%s</p>
+%s
+<div class="liens">%s</div>
+<div class="garanties"><span>Sans mot de passe</span><span>Code valable 10 min</span><span>Déconnexion depuis <a href="/compte" style="color:inherit">votre compte</a></span></div>
+</main>""" % (initiale, e(nom_client), sous, corps, lien("refuser", "Annuler"))
+    return _page_auth("Connexion", contenu)
 
 
 def page_oauth_erreur(message):
-    return gabarit("Connexion impossible", """<style>%s</style><div class="oauth"><h1>Connexion impossible.</h1>
-<p class="alerte">%s</p><p class="mini">Besoin d'aide : <a href="mailto:%s">%s</a>.</p></div>""" % (
-        CSS_OAUTH, html.escape(message), CONTACT, CONTACT), "Connexion impossible", indexer=False)
+    return _page_auth("Connexion impossible", """<main class="carte-auth">
+<div class="liaison"><img src="/static/icones/icone-192.png" alt="Droit by Studjoow"></div>
+<h1>Connexion impossible</h1><p class="alerte" style="margin-top:16px">%s</p>
+<p class="info">Besoin d'aide : <a href="mailto:%s">%s</a></p></main>""" % (html.escape(message), CONTACT, CONTACT))
