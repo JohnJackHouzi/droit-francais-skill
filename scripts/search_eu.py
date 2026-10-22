@@ -39,7 +39,13 @@ def trouver_doc(con, ref):
     celex = ec.celex_de(r)
     if celex:
         return con.execute("SELECT * FROM docs WHERE celex=?", (celex,)).fetchone()
-    return con.execute("SELECT d.* FROM docs d WHERE d.titre LIKE ? ORDER BY d.date DESC LIMIT 1", ("%" + r + "%",)).fetchone()
+    for c in ec.candidats_numero(r):
+        d = con.execute("SELECT * FROM docs WHERE celex=?", (c,)).fetchone()
+        if d:
+            return d
+    return con.execute("SELECT d.* FROM docs d WHERE d.titre LIKE ? "
+                       "ORDER BY d.type IN ('JUDG','ORDER','OPIN_AG','JUDG_EXTRACT'), d.date DESC LIMIT 1",
+                       ("%" + r + "%",)).fetchone()
 
 
 def cmd_texte(a):

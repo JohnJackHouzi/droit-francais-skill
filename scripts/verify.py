@@ -99,7 +99,12 @@ def find_eu(con, ref):
             r"\((UE|CE|CEE|Euratom|PESC)\)|/(UE|CE|CEE)\b", doc_ref, re.I):
         celex = None
     if not celex and not EU_REF.match(doc_ref):
-        return None, None, None
+        for c in ec.candidats_numero(doc_ref):
+            if con.execute("SELECT 1 FROM docs WHERE celex=?", (c,)).fetchone():
+                celex = c
+                break
+        else:
+            return None, None, None
     d = con.execute("SELECT * FROM docs WHERE celex=? OR ecli=? OR affaire=?",
                     (celex or doc_ref.upper(), doc_ref.upper(), doc_ref.upper())).fetchone()
     if d is None:

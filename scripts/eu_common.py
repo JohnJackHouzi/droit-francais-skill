@@ -103,6 +103,21 @@ def celex_de(ref):
     return "3%d%s%04d" % (y, kind, n)
 
 
+def candidats_numero(ref):
+    """CELEX possibles pour un numéro d'acte nu (« 2016/679 », « 93/13 », « 1215/2012 »)."""
+    m = re.fullmatch(r"\s*(?:n[o°]\s*)?(\d{1,4})/(\d{1,4})(?:/\w+)?\s*", ref or "", re.I)
+    if not m:
+        return []
+    a, b = m.group(1), m.group(2)
+
+    def year(x):
+        y = int(x)
+        return y + (1900 if y >= 50 else 2000) if len(x) == 2 else y
+
+    ordres = [(year(a), int(b)), (year(b), int(a))]
+    return ["3%d%s%04d" % (y, k, n) for y, n in ordres if 1950 <= y <= 2100 and n < 10000 for k in ("R", "L", "D")]
+
+
 def lien(celex):
     return "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:" + celex
 
