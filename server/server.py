@@ -12,7 +12,7 @@ SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 TIMEOUT = float(os.environ.get("DROIT_TIMEOUT", "40"))
 MAX_CHARS = int(os.environ.get("DROIT_MAX_CHARS", "40000"))
 RATE = int(os.environ.get("DROIT_RATE_PER_MIN", "60"))
-CONCURRENT = asyncio.Semaphore(int(os.environ.get("DROIT_CONCURRENCY", "6")))
+CONCURRENT = asyncio.Semaphore(int(os.environ.get("DROIT_CONCURRENCY", "2")))
 
 INSTRUCTIONS = """Droit français officiel (Légifrance open data, DILA) : codes, lois, décrets, JORF, conventions collectives, jurisprudence (Conseil d'État, Cour de cassation, cours d'appel, Conseil constitutionnel, CNIL). Droit de l'Union européenne en français (EUR-Lex, Office des publications) : règlements, directives, traités, Charte, arrêts de la CJUE.
 

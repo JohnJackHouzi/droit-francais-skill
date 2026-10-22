@@ -9,10 +9,10 @@
 Codes, lois, Journal officiel, conventions collectives, jurisprudence (Conseil d'État, Cour de cassation, Conseil constitutionnel, CNIL) et droit de l'Union européenne (EUR-Lex), en données ouvertes, gratuit et sans inscription.
 
 [![Serveur en ligne](https://img.shields.io/website?url=https%3A%2F%2Fdroit.studjoow.com%2Fping&label=droit.studjoow.com&up_message=en%20ligne&down_message=hors%20ligne)](https://droit.studjoow.com)
-[![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-1d3557)](https://modelcontextprotocol.io)
-[![Données](https://img.shields.io/badge/donn%C3%A9es-DILA%20%2B%20EUR--Lex-b8860b)](https://echanges.dila.gouv.fr/OPENDATA/)
-[![Licence MIT](https://img.shields.io/badge/licence-MIT-2e7d32)](LICENSE)
-[![Un projet Studjoow](https://img.shields.io/badge/un%20projet-Studjoow-111418)](https://studjoow.com)
+[![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-040e30)](https://modelcontextprotocol.io)
+[![Données](https://img.shields.io/badge/donn%C3%A9es-DILA%20%2B%20EUR--Lex-e0539f)](https://echanges.dila.gouv.fr/OPENDATA/)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-7e8493)](LICENSE)
+[![Un projet Studjoow](https://img.shields.io/badge/un%20projet-Studjoow-b1338a)](https://studjoow.com)
 
 **[droit.studjoow.com](https://droit.studjoow.com)** · [Ajouter en 30 secondes](#en-30-secondes) · [Outils](#les-11-outils) · [Héberger soi-même](#héberger-son-propre-serveur) · [FAQ](#questions-fréquentes)
 
@@ -148,6 +148,7 @@ Au premier démarrage, le conteneur télécharge les dumps DILA un par un dans l
 | `DROIT_ALLOWED_HOSTS` | vide | Domaine(s) public(s) acceptés, ex. `droit.exemple.fr` (protection DNS rebinding) |
 | `DROIT_PUBLIC_URL` | `https://droit.studjoow.com` | Adresse publique utilisée par la page d'accueil |
 | `DROIT_RATE_PER_MIN` | 60 | Requêtes par minute et par IP |
+| `DROIT_CONCURRENCY` | 2 | Recherches exécutées en parallèle (protège les autres services de la machine) |
 | `DROIT_TRUSTED_PROXIES` | 1 | Nombre de proxys devant le serveur (IP lue dans `X-Forwarded-For`) |
 | `DROIT_AUTO_INSTALL` | 1 | 0 : ne pas télécharger les dumps (bases envoyées par rsync) |
 | `DROIT_AUTO_UPDATE` | 1 | 0 : pas de mise à jour quotidienne |
@@ -186,4 +187,6 @@ Le code est sous licence MIT. Les données restent soumises à la Licence Ouvert
 
 ## Un projet Studjoow
 
-Conçu et maintenu par **[Studjoow](https://studjoow.com)**, studio créatif et tech (sites sur mesure, branding, IA, SEO et GEO), Paris et Tel-Aviv. Une idée, un bug, un besoin d'intégration du droit dans votre produit : [ouvrez une issue](https://github.com/JohnJackHouzi/droit-francais-skill/issues) ou contactez le studio via [studjoow.com](https://studjoow.com).
+<a href="https://studjoow.com"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/logo-studjoow-blanc.svg"><img src="docs/logo-studjoow-noir.svg" alt="Studjoow" height="36"></picture></a>
+
+Conçu et maintenu par **[Studjoow](https://studjoow.com)**, studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO. Une idée, un bug, un besoin d'intégration du droit dans votre produit : [ouvrez une issue](https://github.com/JohnJackHouzi/droit-francais-skill/issues) ou contactez le studio via [studjoow.com](https://studjoow.com).
