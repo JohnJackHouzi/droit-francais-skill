@@ -5,40 +5,43 @@ import time
 
 SITE = os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("/")
 REPO = "https://github.com/JohnJackHouzi/droit-francais-skill"
+PRIX = os.environ.get("DROIT_PRIX", "2,99")
+ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
+LIEN_ABONNEMENT = os.environ.get("DROIT_LIEN_ABONNEMENT", "").strip()
 STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#org", "name": "Studjoow", "url": "https://studjoow.com",
-          "description": "Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.", "logo": "https://studjoow.com/brand/logo-long-blanc.svg"}
-TITRE = "Droit français sourcé : serveur MCP gratuit pour Claude et ChatGPT"
-DESCRIPTION = ("Ajoutez le droit français et européen officiel à Claude ou ChatGPT en 30 secondes : codes, lois, "
-               "Journal officiel, conventions collectives, jurisprudence et EUR-Lex, chaque réponse sourcée "
-               "avec son lien Légifrance ou EUR-Lex. Gratuit, sans inscription.")
+          "description": "Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.",
+          "logo": "https://studjoow.com/brand/logo-long-blanc.svg"}
+TITRE = "Droit français sourcé : le droit officiel dans Claude et ChatGPT"
+DESCRIPTION = ("Branchez le droit français et européen officiel sur Claude ou ChatGPT : codes, lois, Journal officiel, "
+               "conventions collectives, jurisprudence et EUR-Lex. Chaque réponse sourcée et vérifiée. "
+               "Essai gratuit, puis %s € par mois." % PRIX)
 
 FAQ = [
-    ("Qu'est-ce que ce serveur ?",
-     "Un serveur MCP (Model Context Protocol) public et gratuit qui donne à Claude, ChatGPT ou tout assistant "
-     "compatible un accès en lecture aux données ouvertes officielles du droit français (DILA, Légifrance) et du "
-     "droit de l'Union européenne (EUR-Lex). L'assistant cherche dans les textes avant de répondre et cite chaque "
-     "source avec son identifiant et son lien."),
-    ("Comment l'ajouter dans Claude ?",
-     "Dans Claude, ouvrez Paramètres, puis Connecteurs, cliquez sur Ajouter un connecteur personnalisé, donnez-lui "
-     "un nom et collez l'adresse %s/mcp. Aucune authentification n'est demandée." % SITE),
-    ("Comment l'ajouter dans ChatGPT ?",
-     "Dans ChatGPT, ouvrez Paramètres, puis Applications et connecteurs. Selon votre offre, activez le mode "
-     "développeur dans les paramètres avancés, puis créez un connecteur avec l'adresse %s/mcp, sans "
-     "authentification." % SITE),
-    ("Quelles sources sont couvertes ?",
-     "Les codes et lois consolidés avec toutes leurs versions datées (LEGI), le Journal officiel (JORF), les "
-     "conventions collectives (KALI), la jurisprudence administrative (JADE), judiciaire (CASS, INCA, CAPP), "
-     "constitutionnelle (CONSTIT) et de la CNIL, ainsi que les règlements, directives, traités et arrêts de la Cour "
-     "de justice de l'Union européenne en français."),
+    ("Qu'est-ce que ce service ?",
+     "Un serveur MCP (Model Context Protocol) qui donne à Claude, ChatGPT ou tout assistant compatible un accès en "
+     "lecture aux données ouvertes officielles du droit français (DILA, Légifrance) et du droit de l'Union "
+     "européenne (EUR-Lex). L'assistant cherche dans les textes avant de répondre et cite chaque source avec son "
+     "identifiant et son lien."),
+    ("Pourquoi payer si le code est libre ?",
+     "Le code est sous licence MIT : chacun peut héberger son propre serveur gratuitement. L'abonnement paie le "
+     "service clé en main : le serveur, 33 Go de bases indexées, les mises à jour de la DILA chaque nuit et la "
+     "maintenance. Vous collez une adresse, c'est tout."),
+    ("Que comprend l'essai gratuit ?",
+     "%d requêtes par jour sur l'adresse publique, sans inscription, avec les mêmes sources et les mêmes outils. "
+     "Assez pour essayer sur de vraies questions avant de vous abonner." % ESSAI_PAR_JOUR),
+    ("Comment fonctionne l'abonnement ?",
+     "%s € par mois, sans engagement. Après le paiement, vous recevez une adresse personnelle à coller comme "
+     "connecteur dans Claude ou ChatGPT, sans limite quotidienne. Résiliable à tout moment." % PRIX),
     ("Les réponses sont-elles fiables ?",
      "Chaque référence peut être contrôlée par l'outil verifier_references avant d'être citée : une référence "
      "introuvable ou une citation absente du texte est signalée. Cela réduit fortement les inventions, sans "
      "remplacer la lecture du texte officiel sur Légifrance ou EUR-Lex. C'est de l'information juridique, pas un "
      "conseil : pour un cas concret, consultez un avocat."),
-    ("Est-ce gratuit ?",
-     "Oui, sans inscription ni publicité. Le service est fourni sans garantie de disponibilité, avec une limite de "
-     "60 requêtes par minute et par adresse IP. Le code est libre (licence MIT) et chacun peut héberger son propre "
-     "serveur."),
+    ("Quelles sources sont couvertes ?",
+     "Les codes et lois consolidés avec toutes leurs versions datées (LEGI), le Journal officiel (JORF), les "
+     "conventions collectives (KALI), la jurisprudence administrative (JADE), judiciaire (CASS, INCA, CAPP), "
+     "constitutionnelle (CONSTIT) et de la CNIL, ainsi que les règlements, directives, traités et arrêts de la Cour "
+     "de justice de l'Union européenne en français."),
 ]
 
 OUTILS = [
@@ -55,11 +58,27 @@ OUTILS = [
     ("etat_base", "Date de mise à jour et volume de chaque base"),
 ]
 
+SOURCES = [
+    ("LEGI", "Codes et lois consolidés", "toutes les versions datées de chaque article"),
+    ("JORF", "Journal officiel", "les textes tels que publiés"),
+    ("KALI", "Conventions collectives", "accords et avenants, par IDCC"),
+    ("JADE", "Juridictions administratives", "Conseil d'État, cours et tribunaux administratifs"),
+    ("CASS", "Cour de cassation", "arrêts publiés et inédits (INCA), cours d'appel (CAPP)"),
+    ("CONSTIT", "Conseil constitutionnel", "décisions DC et QPC"),
+    ("CNIL", "CNIL", "délibérations"),
+    ("EUR-Lex", "Droit de l'Union", "règlements, directives, traités, Charte, arrêts de la CJUE"),
+]
+
 LOGO_STUDJOOW = '<svg role="img" aria-label="Studjoow" class="logo-sj" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 421.36 103.17"><g><g><rect fill="#b1338a" x="411.66" y="68.85" width="9.7" height="9"/><g><path fill="#b1338a" d="M218.61,68.63c2.4-.8,5.2.6,6,3,.8,2.1,0,4.6-1.9,5.9-1.5,1-3.3,1-4.8.2-2-.9-2.9-3.3-2.6-5.4.3-1.7,1.5-3.2,3.2-3.7h.1Z"/><path fill="#b1338a" d="M222.01,44.73c2.4-.8,5.2.6,6,3,.8,2.1,0,4.6-1.9,5.9-1.5,1-3.3,1-4.8.2-2-.9-2.9-3.3-2.6-5.4.3-1.7,1.5-3.2,3.2-3.7h.1Z"/><path fill="currentColor" d="M331.71,33.33c-3.6-3.8-8.3-6.7-13.6-7.6-4.3-.9-8.6-.1-12.5,1.6-3.2,1.5-6.1,3.7-8.4,6.3-.8-1.1-1.9-2.1-3.2-2.6-1.3-.5-2.5-.2-3.8-.2-2.2-1.8-4.7-3.3-7.4-4.2-4.9-1.7-10.4-1.7-15.2.2-3.8,1.5-6.9,4.4-9,7.7-2.8,4.3-4.2,9.4-4.9,14.4-.9,7.8,2,15.7,7.4,21.5,3.6,3.8,8.3,6.7,13.6,7.7,4.3.8,8.6.1,12.5-1.6,4.5-2.1,8.2-5.5,10.9-9.5.2.3.4.6.7.9l1.6,2.1c2.2,2.9,5.1,5.3,8.5,6.7.4.2.8.3,1.2.4,4.9,1.7,10.4,1.7,15.2-.2,3.8-1.5,6.9-4.4,9-7.7,2.8-4.3,4.2-9.4,4.9-14.4.9-7.8-2-15.7-7.4-21.5h-.1ZM288.11,61.23c-2.3,2.7-5.5,4.8-9,5.7-2.6.7-5.4.4-7.6-1-2.2-1.4-3.9-3.3-5-5.7-2.4-4.9-2.2-10.4-.4-15.5.8-2.1,1.8-4.1,3.4-5.8,1.8-1.9,4.1-3.3,6.8-3.4,3.1-.3,5.4,1.3,7.8,2.9-.2.8-.7,1.5-.4,2.3.4,1.2,1.5,2.2,2.3,3.1,2.6,3,4.7,6.4,4.7,10.4.1,2.5-1,4.8-2.5,6.8h0l-.1.2ZM326.71,58.73c-.8,2.1-1.8,4.1-3.4,5.8-1.8,1.9-4.1,3.3-6.8,3.4-1.1,0-2.1,0-3-.3-2.8-.8-4.9-3.1-5.9-5.8l-.2-.7c-.4-1-.9-1.8-1.5-2.7-2.2-2.7-3.8-5.8-3.8-9.3-.1-2.5,1-4.8,2.5-6.8,2.3-2.7,5.5-4.8,9-5.7,2.6-.7,5.4-.4,7.6,1s4,3.3,5,5.7c2.4,4.9,2.2,10.4.4,15.5h0l.1-.1Z"/><path fill="currentColor" d="M227.91.33c3.8-1.2,8.2,1,9.4,4.8,1.2,3.3,0,7.2-2.9,9.2-2.3,1.5-5.1,1.6-7.6.3-3.1-1.4-4.6-5.2-4-8.4.5-2.7,2.4-5.1,5.1-5.9Z"/><path fill="currentColor" d="M377.21,29.33c-1.9,4.6-3.3,9.4-4.4,14.4-.9,4.2-1.9,10.3-3.8,14-4.4,8.9-7.8,11.2-11.5,1-2-4.8-3.2-12.4-3.8-17.8-.5-4.2-.6-13.1-4.7-14.4-1.3-.4-2.6.1-3.6,1.2-4,4.4-2.3,16.3-1.6,21.8v.2c2,10.6,5,20.7,14.3,26.3,11.5,6.6,17.6-1.9,21.3-13.6h0c2.2,6.4,5.5,10.2,11.2,13.6,11.3,6.5,16.2-1.6,20.1-13.1,1.7-4.3,2.8-9.9,3.9-15,1-5.8,3.3-14.5.7-19.1h0c-4.6-5.7-8.6,2.7-9.4,7.4-1.5,6.6-2.3,15.5-5.4,21.5-4.4,8.9-6.8,11.2-10.5,1-2-4.8-3.2-12.4-3.8-17.8-.5-4.2-.6-13.1-4.7-14.4-.6-.2-1.1-.2-1.7,0-1,.3-1.9,1.2-2.3,2.2l-.3.7h0v-.1Z"/><g><path fill="currentColor" d="M46.42,41.35c-3.69-1.93-8.79-3.52-15.3-4.75-3.34-.7-5.8-1.23-7.74-2.11-1.76-.7-3.17-1.58-3.87-2.64-.88-1.06-1.23-2.29-1.23-3.87s.88-3.69,2.46-4.92c1.76-1.23,4.04-1.93,6.86-1.93s4.4.53,5.98,1.41c1.76.88,2.99,2.11,4.04,3.69s1.58,3.52,1.76,5.63l16.35-.7c-.53-4.57-1.76-8.62-4.04-12.13s-5.28-6.15-9.32-8.26c-4.04-1.93-8.79-2.99-14.77-2.99s-10.2.88-14.07,2.64-6.86,4.22-8.97,7.21c-2.11,3.17-3.17,6.68-3.17,10.9s.88,7.21,2.46,9.85,4.4,4.75,7.91,6.33c3.69,1.76,8.44,3.17,14.42,4.4,3.87.88,6.86,1.58,8.62,2.46,1.93.88,3.17,1.76,3.87,2.81.7,1.06,1.06,2.29,1.06,3.69s-.35,2.81-1.23,3.87-1.93,1.76-3.34,2.29-3.34.7-5.45.7-4.92-.53-6.68-1.41-3.17-2.11-4.4-3.87c-1.06-1.76-1.76-3.69-2.11-6.15l-16.53.7c.35,4.92,1.58,9.14,4.04,12.66,2.46,3.52,5.63,6.33,10.02,8.26,4.22,1.93,9.5,2.99,15.47,2.99s10.38-.88,14.42-2.46c4.04-1.76,7.03-4.04,9.32-7.21,2.11-3.17,3.17-6.86,3.17-11.25s-.88-6.51-2.46-9.14-4.22-4.92-7.91-6.86l.35.18Z"/><path fill="currentColor" d="M84.41,7.68h-16.35v18.2h-8.44v11.78h8.44v23.21c0,5.63,1.23,9.67,3.87,12.31,2.64,2.64,6.68,3.87,12.13,3.87h13.72v-11.78h-7.03c-2.11,0-3.69-.53-4.75-1.41s-1.58-2.64-1.58-5.1v-21.1h13.36v-11.78h-13.36s0-18.2,0-18.2Z"/><path fill="currentColor" d="M134.35,54.19c0,3.87-.7,6.68-2.11,8.44-1.41,1.76-3.34,2.64-5.8,2.64s-3.87-.88-4.92-2.46c-1.06-1.58-1.58-4.22-1.58-7.91v-29.19h-16.35v33.06c0,6.15,1.41,10.9,4.4,14.24,2.99,3.34,7.03,5.1,12.49,5.1s8.97-1.41,11.78-4.04c1.41-1.41,2.64-3.17,3.52-5.28v8.26h14.95V25.88h-16.35v28.31h0Z"/></g><g><path fill="currentColor" d="M208.21,7.85h-16.35v25.23c-1.41-2.64-3.34-4.75-5.98-6.15s-5.8-2.29-9.5-2.29-7.91,1.06-11.08,3.34c-3.17,2.11-5.63,5.28-7.21,9.32-1.76,4.04-2.64,8.79-2.64,14.24s.88,10.2,2.64,14.24c1.76,4.04,4.04,7.03,7.21,9.32,2.99,2.11,6.68,3.34,11.08,3.34s6.68-.7,9.5-2.29c2.64-1.41,4.75-3.52,6.15-6.33l.35,7.39h1.43s0,.02,0,.03h12.62s0-.02,0-.03h1.78V7.85ZM190.8,59.99v-.35c-.7,2.11-1.76,3.69-3.17,4.92-1.41,1.06-3.17,1.58-5.28,1.58s-5.28-1.41-7.03-4.04-2.64-6.15-2.64-10.55.88-8.09,2.64-10.73,4.04-3.87,7.03-3.87,3.87.53,5.28,1.58c1.41,1.06,2.46,2.64,3.17,4.92.7,2.11,1.06,4.92,1.06,8.26s-.35,5.98-1.06,8.26Z"/><path fill="currentColor" d="M248.51,41.63l-.1-.1c-.2-5-1.4-9.5-2.7-14.3-.6-1.9-1.1-3.9-2.9-5-1.3-.9-2.6-.6-4.1-.5-2.6,1.5-5.4,1.9-8.3,2.4-3.5.7-6.9.9-10.3,1.9-3.2,1-5.7,5.2-3.9,8.4,1,2.4,3.9,3.1,6.3,3.2,4.2-.2,8.4-1,12.5-2,.9,2.5,1,5,1.3,7.7.6,7,.2,24.6-1.6,31.5-1,4.7-2.8,9-6.3,12.4-2.2,2.38-5.07,3.25-8.15,3.53-3.08-.28-5.95-1.15-8.15-3.53-1.14-1.11-1.92-2.31-2.61-3.6-.62-1.14-1.81-1.86-3.11-1.86h-7.07c-2.79,0-4.48,3.08-2.98,5.44,1.96,3.09,3.64,4.96,5.87,7.52l.4.5c.9.7,1.7,1.4,2.5,2.2,3.5,3.1,7.9,5.2,12.6,5.6.66.07,1.33.1,2.01.12v.02c.18,0,.35,0,.53,0,.18,0,.35.01.53,0v-.02c.68-.02,1.36-.05,2.02-.12,4.7-.4,9.1-2.5,12.6-5.6.8-.8,1.6-1.5,2.5-2.2l.4-.5c3.4-3.9,5.8-8.5,7.4-13.4,2.9-9.7,4.1-29.8,2.8-39.7Z"/></g></g></g></g></svg>'
 
 ICONE = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" '
          'fill="#b1338a"/><path d="M32 12v40M18 52h28M14 24h36M20 24l-8 16h16zM44 24l-8 16h16z" stroke="#ffffff" '
          'stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+
+FONTS = """@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:swap;src:url(/static/fonts/instrument-serif-normal-400.woff2) format('woff2')}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:swap;src:url(/static/fonts/instrument-serif-italic-400.woff2) format('woff2')}
+@font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(/static/fonts/plus-jakarta-sans-normal-400-700.woff2) format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:400 500;font-display:swap;src:url(/static/fonts/geist-mono-normal-400.woff2) format('woff2')}"""
 
 _cache = {"t": 0.0, "v": None}
 
@@ -97,18 +116,26 @@ def nombre(n):
 
 
 def json_ld():
+    prix = PRIX.replace(",", ".")
     graph = [
         STUDIO,
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "Droit français sourcé",
          "inLanguage": "fr-FR", "description": DESCRIPTION, "publisher": {"@id": "https://studjoow.com/#org"}},
-        {"@type": "SoftwareApplication", "@id": SITE + "/#app", "name": "Serveur MCP Droit français",
-         "applicationCategory": "DeveloperApplication", "image": SITE + "/og.png", "operatingSystem": "Tous (service web)",
+        {"@type": "SoftwareApplication", "@id": SITE + "/#app", "name": "Droit français sourcé (serveur MCP)",
+         "applicationCategory": "BusinessApplication", "applicationSubCategory": "Recherche juridique",
+         "operatingSystem": "Tous (service web)", "image": SITE + "/og.png",
          "url": SITE + "/", "installUrl": SITE + "/mcp", "softwareHelp": REPO, "codeRepository": REPO,
-         "license": "https://opensource.org/licenses/MIT", "inLanguage": "fr-FR", "isAccessibleForFree": True,
-         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+         "license": "https://opensource.org/licenses/MIT", "inLanguage": "fr-FR",
+         "offers": [
+             {"@type": "Offer", "name": "Essai gratuit", "price": "0", "priceCurrency": "EUR",
+              "description": "%d requêtes par jour, sans inscription" % ESSAI_PAR_JOUR},
+             {"@type": "Offer", "name": "Abonnement", "price": prix, "priceCurrency": "EUR",
+              "priceSpecification": {"@type": "UnitPriceSpecification", "price": prix, "priceCurrency": "EUR",
+                                     "billingDuration": "P1M", "unitText": "MONTH"},
+              "description": "Accès illimité par adresse personnelle, sans engagement"},
+         ],
          "author": {"@id": "https://studjoow.com/#org"}, "publisher": {"@id": "https://studjoow.com/#org"},
-         "description": DESCRIPTION,
-         "featureList": [o[1] for o in OUTILS]},
+         "description": DESCRIPTION, "featureList": [o[1] for o in OUTILS]},
         {"@type": "Dataset", "name": "Droit français et européen (données ouvertes DILA et EUR-Lex)",
          "description": "Bases LEGI, JORF, KALI, JADE, CASS, CAPP, INCA, CONSTIT, CNIL et EUR-Lex interrogeables en plein texte.",
          "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
@@ -126,126 +153,357 @@ def json_ld():
 
 
 CSS = """
-:root{--bg:#f2f3fb;--fg:#1b0b16;--muted:#3a3f4e;--card:#fff;--line:#d8dbe4;--accent:#b1338a;--accent2:#e0539f;--soft:#eddaec;--onaccent:#fff;--ok:#00bb7f;--warn:#f99c00}
-@media (prefers-color-scheme:dark){:root{--bg:#040e30;--fg:#f7f8fb;--muted:#b4b9c6;--card:#0b1742;--line:#1e2b5e;--accent:#e0539f;--accent2:#e0539f;--soft:#2a1640;--onaccent:#040e30;--ok:#00bb7f;--warn:#f99c00}}
-*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:860px;margin:0 auto;padding:40px 16px 64px}
-h1{font-size:clamp(28px,5vw,42px);line-height:1.15;margin:0 0 12px;letter-spacing:-.01em}
-h2{font-size:22px;margin:44px 0 12px}h3{font-size:18px;margin:20px 0 6px}
-p{margin:0 0 12px}.lead{font-size:19px;color:var(--muted)}
-a{color:var(--accent)}code{font:15px ui-monospace,SFMono-Regular,Menlo,monospace}
-.url{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:20px 0}
-.url code{font-size:17px;word-break:break-all;flex:1;min-width:200px}
-button{font:inherit;font-size:15px;border:0;border-radius:8px;padding:8px 14px;background:var(--accent);color:var(--onaccent);cursor:pointer;font-weight:600}
-.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px}
-.marque{display:inline-flex;align-items:center;gap:8px;font-size:14px;text-decoration:none;color:var(--muted)}
-.logo-sj{height:20px;width:auto;color:var(--fg)}.signature .logo-sj{height:18px}
-.etat{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted)}
-.pt{width:10px;height:10px;border-radius:50%;background:var(--warn)}.pt.ok{background:var(--ok)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-.card h3{margin-top:0}ol{padding-left:22px}li{margin:4px 0}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
-.stat b{display:block;font-size:24px}.stat span{font-size:14px;color:var(--muted)}
-table{width:100%;border-collapse:collapse;font-size:15px}td{padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
-td:first-child{white-space:nowrap}
-details{border-top:1px solid var(--line);padding:10px 0}summary{cursor:pointer;font-weight:600}
-.note{border-left:4px solid var(--accent2);padding:8px 14px;background:var(--card);border-radius:0 8px 8px 0}
-footer{margin-top:48px;font-size:14px;color:var(--muted)}
-@media (max-width:480px){.url code{font-size:14px;min-width:0}}
+:root{
+  --bg:#f2f3fb;--paper:#ffffff;--fg:#1b0b16;--ink:#3a3f4e;--muted:#7e8493;--line:#d8dbe4;--rule:rgba(27,11,22,.07);
+  --accent:#b1338a;--accent2:#e0539f;--soft:#eddaec;--deep:#040e30;--onaccent:#fff;--ok:#00a06d;--ko:#bf000f;
+  --serif:'Instrument Serif',Georgia,'Times New Roman',serif;
+  --sans:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#040e30;--paper:#0a1640;--fg:#f7f8fb;--ink:#c9cdd8;--muted:#8a90a3;--line:#1e2b5e;--rule:rgba(247,248,251,.06);
+  --accent:#e0539f;--accent2:#e0539f;--soft:#2a1640;--onaccent:#040e30;--ok:#34d39b;--ko:#ff6b7a}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16.5px/1.65 var(--sans);overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+a{color:inherit}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 24px}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.serif{font-family:var(--serif);font-weight:400}
+::selection{background:var(--accent);color:var(--onaccent)}
+
+/* barre */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0;flex-wrap:wrap}
+.marque{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--muted);font-size:13px;letter-spacing:.02em}
+.logo-sj{height:19px;width:auto;color:var(--fg)}
+.nav{display:flex;gap:22px;align-items:center;font-size:14px}
+.nav a{text-decoration:none;color:var(--ink)}.nav a:hover{color:var(--accent)}
+.etat{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+.pt{width:8px;height:8px;border-radius:50%;background:#f99c00;box-shadow:0 0 0 4px rgba(249,156,0,.15)}
+.pt.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(0,160,109,.15);animation:pouls 2.4s infinite}
+@keyframes pouls{50%{box-shadow:0 0 0 7px rgba(0,160,109,0)}}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center;padding:40px 0 72px;position:relative}
+.hero::after{content:"";position:absolute;right:-12%;top:-8%;width:620px;height:620px;border-radius:50%;z-index:-1;
+  background:radial-gradient(closest-side,rgba(177,51,138,.18),transparent 70%);filter:blur(10px)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  display:flex;align-items:center;gap:10px;margin:0 0 22px}
+.eyebrow::before{content:"§";font-family:var(--serif);font-size:22px;letter-spacing:0;line-height:1}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(46px,7.2vw,92px);line-height:.96;letter-spacing:-.02em;margin:0 0 26px}
+h1 em{font-style:italic;color:var(--accent)}
+.lead{font-size:clamp(17px,1.6vw,19.5px);color:var(--ink);max-width:560px;margin:0 0 30px}
+.url{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  padding:8px 8px 8px 18px;max-width:560px;box-shadow:0 1px 0 var(--rule),0 18px 40px -24px rgba(4,14,48,.35)}
+.url code{flex:1;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{font:600 14.5px/1 var(--sans);border:0;border-radius:10px;padding:13px 18px;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;gap:8px;transition:transform .15s ease,box-shadow .15s ease,background .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn-1{background:var(--accent);color:var(--onaccent);box-shadow:0 10px 24px -12px var(--accent)}
+.btn-2{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn-2:hover{border-color:var(--accent)}
+.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed;transform:none}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.mini{font-size:13px;color:var(--muted);margin-top:14px}
+
+/* fiche animée */
+.fiche{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:26px 26px 22px;
+  box-shadow:0 40px 80px -40px rgba(4,14,48,.45);transform:rotate(.6deg)}
+.fiche::before{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 32px)}
+.fiche .marge{position:absolute;left:52px;top:0;bottom:0;width:1px;background:rgba(224,83,159,.35)}
+.fiche-tete{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--muted);margin-bottom:16px;padding-left:40px}
+.q{font-family:var(--serif);font-size:25px;line-height:1.2;padding-left:40px;margin:0 0 14px;position:relative}
+.q::before{content:"Q.";position:absolute;left:0;top:2px;font:600 13px var(--mono);color:var(--accent)}
+.r{padding-left:40px;position:relative;font-size:15px;color:var(--ink);margin:0 0 16px}
+.r::before{content:"R.";position:absolute;left:0;top:1px;font:600 13px var(--mono);color:var(--accent)}
+.r cite{font-style:normal;font-family:var(--mono);font-size:12.5px;background:var(--soft);color:var(--fg);padding:1px 6px;border-radius:5px}
+.refs{list-style:none;margin:0;padding:0 0 0 40px;display:grid;gap:8px}
+.refs li{display:flex;align-items:center;justify-content:space-between;gap:10px;font:12.5px/1.4 var(--mono);
+  border:1px dashed var(--line);border-radius:9px;padding:9px 10px;background:var(--bg)}
+.tampon{font:600 10.5px var(--mono);letter-spacing:.12em;padding:4px 7px;border:1.5px solid currentColor;border-radius:4px;
+  transform:rotate(-6deg);white-space:nowrap}
+.tampon.ok{color:var(--ok)}.tampon.ko{color:var(--ko)}
+.refs li.faux span:first-child{text-decoration:line-through;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){
+  .anim{opacity:0;animation:monte .7s cubic-bezier(.2,.7,.2,1) forwards}
+  .q.anim{animation-delay:.25s}.r.anim{animation-delay:.9s}
+  .refs li:nth-child(1){animation-delay:1.5s}.refs li:nth-child(2){animation-delay:1.8s}.refs li:nth-child(3){animation-delay:2.1s}
+  .tampon{opacity:0;animation:tampon .35s cubic-bezier(.3,1.6,.5,1) forwards}
+  .refs li:nth-child(1) .tampon{animation-delay:2.5s}.refs li:nth-child(2) .tampon{animation-delay:2.8s}.refs li:nth-child(3) .tampon{animation-delay:3.1s}
+  .hero-txt>*{opacity:0;animation:monte .8s cubic-bezier(.2,.7,.2,1) forwards}
+  .hero-txt>*:nth-child(2){animation-delay:.08s}.hero-txt>*:nth-child(3){animation-delay:.16s}.hero-txt>*:nth-child(4){animation-delay:.24s}.hero-txt>*:nth-child(5){animation-delay:.32s}
+}
+@keyframes monte{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes tampon{from{opacity:0;transform:scale(2.2) rotate(-14deg)}to{opacity:1;transform:scale(1) rotate(-6deg)}}
+
+/* chiffres */
+.chiffres{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--fg);border-bottom:1px solid var(--line)}
+.chiffres div{padding:26px 22px 24px;border-left:1px solid var(--line)}.chiffres div:first-child{border-left:0;padding-left:0}
+.chiffres b{display:block;font-family:var(--serif);font-weight:400;font-size:clamp(34px,4vw,50px);line-height:1;letter-spacing:-.01em}
+.chiffres span{font-size:13.5px;color:var(--muted)}
+
+/* sections */
+section{padding:96px 0 0}
+.titre{display:grid;grid-template-columns:140px 1fr;gap:24px;margin-bottom:40px;align-items:baseline}
+.titre .num{font-family:var(--serif);font-size:56px;line-height:1;color:var(--accent)}
+.titre h2{font-family:var(--serif);font-weight:400;font-size:clamp(34px,4.4vw,54px);line-height:1.02;letter-spacing:-.015em;margin:0}
+.titre p{grid-column:2;margin:12px 0 0;color:var(--ink);max-width:640px}
+.etapes{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-left:164px;border-top:1px solid var(--line)}
+.etapes div{padding:24px 26px 0 0}
+.etapes b{font:500 12px var(--mono);color:var(--accent);letter-spacing:.1em}
+.etapes h3{font:600 18px/1.3 var(--sans);margin:8px 0 6px}
+.etapes p{margin:0;color:var(--ink);font-size:15px}
+.sources{margin-left:164px;border-top:1px solid var(--fg)}
+.sources div{display:grid;grid-template-columns:110px 260px 1fr;gap:18px;padding:15px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.sources code{color:var(--accent);font-weight:500}
+.sources span{color:var(--muted);font-size:14.5px}
+.sources div:hover{background:linear-gradient(90deg,var(--soft),transparent 60%)}
+
+/* vérification */
+.bande{margin-top:96px;background:var(--deep);color:#f7f8fb;position:relative;overflow:hidden}
+.bande::before{content:"";position:absolute;inset:0;opacity:.6;
+  background:radial-gradient(600px 300px at 85% 0%,rgba(224,83,159,.35),transparent 70%),radial-gradient(500px 300px at 0% 100%,rgba(177,51,138,.25),transparent 70%)}
+.bande .wrap{display:grid;grid-template-columns:1fr 1.05fr;gap:56px;padding-top:88px;padding-bottom:88px}
+.bande h2{font-family:var(--serif);font-weight:400;font-size:clamp(36px,4.4vw,56px);line-height:1;margin:0 0 18px}
+.bande h2 em{color:#e0539f}
+.bande p{color:#c9cdd8;margin:0 0 14px}
+.terminal{background:rgba(4,14,48,.7);border:1px solid rgba(247,248,251,.12);border-radius:14px;padding:20px 22px;
+  font:13px/1.75 var(--mono);color:#dfe3ee;box-shadow:0 30px 60px -30px #000;overflow-x:auto}
+.terminal .p{color:#e0539f}.terminal .ok{color:#34d39b}.terminal .ko{color:#ff6b7a}.terminal .d{color:#8a90a3}
+
+/* tarifs */
+.tarifs{display:grid;grid-template-columns:1fr 1.15fr .85fr;gap:18px;margin-left:164px;align-items:stretch}
+.offre{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:28px 26px;display:flex;flex-direction:column}
+.offre h3{font:600 13px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+.prix{font-family:var(--serif);font-size:62px;line-height:1;margin:0}.prix small{font:500 15px var(--sans);color:var(--muted);margin-left:6px}
+.offre ul{list-style:none;padding:0;margin:20px 0 24px;display:grid;gap:9px;font-size:15px;color:var(--ink)}
+.offre li{padding-left:22px;position:relative}.offre li::before{content:"§";position:absolute;left:0;color:var(--accent);font-family:var(--serif);font-size:17px;line-height:1.3}
+.offre .btn{margin-top:auto;justify-content:center}
+.offre.vedette{border:1.5px solid var(--accent);position:relative;box-shadow:0 30px 60px -36px var(--accent)}
+.offre.vedette .etiquette{position:absolute;top:-12px;left:24px;background:var(--accent);color:var(--onaccent);font:600 11px var(--mono);
+  letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:6px}
+.offre.libre{background:transparent;border-style:dashed}
+
+/* installation */
+.install{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-left:164px}
+.install div{border-top:2px solid var(--fg);padding-top:16px}
+.install h3{font:600 17px var(--sans);margin:0 0 10px}
+.install ol{margin:0;padding-left:18px;color:var(--ink);font-size:15px}.install li{margin:5px 0}
+.install pre{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.6 var(--mono);overflow-x:auto;margin:10px 0 0}
+
+/* outils + faq */
+.outils{margin-left:164px;columns:2;column-gap:36px}
+.outils p{break-inside:avoid;margin:0 0 14px;font-size:15px;color:var(--ink)}
+.outils code{display:block;color:var(--fg);font-weight:500;margin-bottom:2px}
+.faq{margin-left:164px;border-top:1px solid var(--fg)}
+details{border-bottom:1px solid var(--line);padding:18px 0}
+summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font:600 17px var(--sans)}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--serif);font-size:28px;line-height:.8;color:var(--accent);transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{margin:10px 0 0;color:var(--ink);max-width:760px}
+.note{margin:28px 0 0 164px;border-left:3px solid var(--accent);padding:14px 18px;background:var(--paper);border-radius:0 12px 12px 0;font-size:15px;color:var(--ink)}
+
+footer{margin-top:110px;border-top:1px solid var(--fg);padding:34px 0 60px;font-size:13.5px;color:var(--muted)}
+footer .wrap{display:grid;grid-template-columns:1.2fr 1fr;gap:30px}
+footer a{color:var(--ink)}
+footer .marque{color:var(--muted);font-size:13.5px}footer .logo-sj{height:22px}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:40px;padding-top:20px}.fiche{transform:none}
+  .nav{display:none}
+  .chiffres{grid-template-columns:repeat(2,1fr)}.chiffres div:nth-child(3){border-left:0;padding-left:0}
+  .chiffres div:nth-child(n+3){border-top:1px solid var(--line)}
+  .titre{grid-template-columns:1fr;gap:6px}.titre p{grid-column:1}.titre .num{font-size:40px}
+  .etapes,.sources,.tarifs,.install,.outils,.faq,.note{margin-left:0}
+  .etapes,.tarifs,.install{grid-template-columns:1fr;gap:18px}
+  .sources div{grid-template-columns:90px 1fr}.sources span{grid-column:2}
+  .outils{columns:1}.bande .wrap{grid-template-columns:1fr;gap:32px}
+  footer .wrap{grid-template-columns:1fr}
+}
+@media (max-width:480px){.wrap{padding:0 16px}h1{font-size:44px}.url code{font-size:13px}.fiche{padding:20px 16px}
+  .q,.r,.refs,.fiche-tete{padding-left:30px}.fiche .marge{left:38px}.q{font-size:21px}}
 """
+
+
+def _boutons_abonnement(classe="btn btn-1"):
+    if LIEN_ABONNEMENT:
+        return '<a class="%s" href="%s" rel="nofollow">S\'abonner pour %s € / mois</a>' % (
+            classe, html.escape(LIEN_ABONNEMENT), PRIX)
+    return '<span class="%s" aria-disabled="true">Abonnement : ouverture prochaine</span>' % classe
 
 
 def render(etat_fn):
     r = resume(etat_fn)
     e = html.escape
-    etat = ("<span class=\"pt ok\"></span>En service%s" % (", bases à jour du %s" % r["maj"] if r["maj"] else "")
-            if r["pret"] else "<span class=\"pt\"></span>Bases en cours de chargement, réessayer plus tard")
-    stats = ""
+    etat = ('<span class="pt ok"></span>en service · bases du %s' % (r["maj"] or "jour")
+            if r["pret"] else '<span class="pt"></span>bases en cours de chargement')
+    chiffres = ""
     if r["pret"]:
-        items = [(r["articles"], "articles de codes, lois, JO et conventions"), (r["decisions"], "décisions de justice")]
+        items = [(r["articles"], "articles de codes, lois, JO et conventions"),
+                 (r["decisions"], "décisions de justice")]
         if r["ue"]:
             items.append((r["ue"], "textes et arrêts de l'UE"))
-        stats = "<div class=\"stats\">%s</div>" % "".join(
-            "<div class=\"card stat\"><b>%s</b><span>%s</span></div>" % (nombre(n), lab) for n, lab in items)
-    outils = "".join("<tr><td><code>%s</code></td><td>%s</td></tr>" % (e(n), e(d)) for n, d in OUTILS)
+        items.append((11, "outils à disposition de l'assistant"))
+        chiffres = '<div class="wrap"><div class="chiffres">%s</div></div>' % "".join(
+            "<div><b>%s</b><span>%s</span></div>" % (nombre(n), lab) for n, lab in items[:4])
+    sources = "".join('<div><code>%s</code><b>%s</b><span>%s</span></div>' % (e(c), e(t), e(d)) for c, t, d in SOURCES)
+    outils = "".join("<p><code>%s</code>%s</p>" % (e(n), e(d)) for n, d in OUTILS)
     faq = "".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in FAQ)
-    return """<!doctype html>
+    v = {
+        "titre": e(TITRE), "desc": e(DESCRIPTION), "site": SITE, "ld": json_ld().replace("</", "<\\/"),
+        "fonts": FONTS, "css": CSS, "etat": etat, "chiffres": chiffres, "sources": sources, "outils": outils,
+        "faq": faq, "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
+        "abonner": _boutons_abonnement(), "abonner2": _boutons_abonnement("btn btn-1"),
+    }
+    page = PAGE
+    for k, val in v.items():
+        page = page.replace("{{%s}}" % k, val)
+    return page
+
+
+PAGE = """<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>%(titre)s</title>
-<meta name="description" content="%(desc)s">
-<link rel="canonical" href="%(site)s/">
-<meta name="robots" content="index,follow,max-snippet:-1">
+<title>{{titre}}</title>
+<meta name="description" content="{{desc}}">
+<link rel="canonical" href="{{site}}/">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
 <meta name="theme-color" content="#b1338a">
+<meta name="author" content="Studjoow">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/static/fonts/instrument-serif-normal-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/plus-jakarta-sans-normal-400-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:site_name" content="Droit français sourcé">
-<meta property="og:title" content="%(titre)s">
-<meta property="og:description" content="%(desc)s">
-<meta property="og:url" content="%(site)s/">
-<meta property="og:image" content="%(site)s/og.png">
+<meta property="og:title" content="{{titre}}">
+<meta property="og:description" content="{{desc}}">
+<meta property="og:url" content="{{site}}/">
+<meta property="og:image" content="{{site}}/og.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
 <meta property="og:image:alt" content="Le droit français officiel, sourcé, dans Claude et ChatGPT. Un projet Studjoow.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="%(site)s/og.png">
-<meta name="author" content="Studjoow">
-<script type="application/ld+json">%(ld)s</script>
-<style>%(css)s</style>
+<meta name="twitter:image" content="{{site}}/og.png">
+<script type="application/ld+json">{{ld}}</script>
+<style>{{fonts}}{{css}}</style>
 </head>
 <body>
-<main>
-<header>
-<p class="top"><a href="https://studjoow.com" class="marque"><span>Un projet</span>%(logo)s</a><span class="etat">%(etat)s</span></p>
-<h1>Le droit français officiel, sourcé, dans Claude et ChatGPT</h1>
-<p class="lead">Un serveur MCP gratuit qui fait chercher votre assistant dans les codes, les lois, le Journal officiel, les conventions collectives, la jurisprudence et le droit européen avant de répondre. Chaque affirmation est suivie de sa source : article, identifiant Légifrance ou CELEX, lien et date de version.</p>
+<div class="wrap">
+<header class="bar">
+<a href="https://studjoow.com" class="marque"><span>Un projet</span>{{logo}}</a>
+<nav class="nav" aria-label="Sections"><a href="#methode">Méthode</a><a href="#sources">Sources</a><a href="#tarifs">Tarifs</a><a href="#faq">FAQ</a></nav>
+<span class="etat">{{etat}}</span>
 </header>
 
-<div class="url"><code id="u">%(site)s/mcp</code><button type="button" onclick="navigator.clipboard.writeText(document.getElementById('u').textContent).then(()=>{this.textContent='Copié'})">Copier l'adresse</button></div>
-%(stats)s
-
-<h2 id="installer">Ajouter le serveur en 30 secondes</h2>
-<div class="grid">
-<section class="card"><h3>Dans Claude</h3><ol><li>Ouvrir <b>Paramètres</b>, puis <b>Connecteurs</b>.</li><li>Cliquer sur <b>Ajouter un connecteur personnalisé</b>.</li><li>Nom : <i>Droit français</i>. URL : <code>%(site)s/mcp</code>. Pas d'authentification.</li><li>Dans une conversation, activer le connecteur et demander : « Que dit l'article 1240 du Code civil ? »</li></ol></section>
-<section class="card"><h3>Dans ChatGPT</h3><ol><li>Ouvrir <b>Paramètres</b>, puis <b>Applications et connecteurs</b>.</li><li>Selon l'offre, activer le <b>mode développeur</b> dans les paramètres avancés.</li><li><b>Créer</b> un connecteur avec l'URL <code>%(site)s/mcp</code>, authentification <b>aucune</b>.</li><li>Le choisir dans le menu des outils d'une conversation.</li></ol></section>
+<main>
+<div class="hero">
+<div class="hero-txt">
+<p class="eyebrow">Serveur MCP · droit français et européen</p>
+<h1>Le droit,<br><em>cité à la source.</em></h1>
+<p class="lead">Branchez Claude ou ChatGPT sur les textes officiels : codes, lois, Journal officiel, conventions collectives, jurisprudence et EUR-Lex. Chaque affirmation arrive avec son article, son identifiant Légifrance et sa date de version. Et chaque référence est vérifiée avant d'être citée.</p>
+<div class="url"><code id="u">{{site}}/mcp</code><button type="button" class="btn btn-1" onclick="navigator.clipboard.writeText(document.getElementById('u').textContent).then(()=>{this.textContent='Copié'})">Copier l'adresse</button></div>
+<div class="ctas"><a class="btn btn-2" href="#installer">Essayer gratuitement</a>{{abonner}}</div>
 </div>
 
-<h2 id="sources">Ce que contient la base</h2>
-<div class="grid">
-<section class="card"><h3>Législation</h3><p>Codes, lois, décrets et arrêtés consolidés avec toutes leurs versions datées (LEGI), Journal officiel tel que publié (JORF), conventions collectives par IDCC (KALI).</p></section>
-<section class="card"><h3>Jurisprudence</h3><p>Conseil d'État et juridictions administratives (JADE), Cour de cassation (CASS, INCA), cours d'appel (CAPP), Conseil constitutionnel, délibérations de la CNIL.</p></section>
-<section class="card"><h3>Droit de l'Union</h3><p>Règlements et directives en vigueur dans leur dernière version consolidée (RGPD, règlement sur l'IA, DSA, DMA...), traités, Charte des droits fondamentaux, arrêts de la Cour de justice et du Tribunal, en français.</p></section>
+<div class="fiche" aria-label="Exemple de réponse sourcée">
+<span class="marge"></span>
+<div class="fiche-tete"><span>dossier n° 1240</span><span>droit.studjoow.com</span></div>
+<p class="q anim">Mon voisin a abîmé ma clôture. Sur quoi fonder une demande ?</p>
+<p class="r anim">Sur la responsabilité pour faute : « tout fait quelconque de l'homme, qui cause à autrui un dommage, oblige celui par la faute duquel il est arrivé à le réparer » <cite>C. civ., art. 1240</cite>.</p>
+<ul class="refs">
+<li class="anim"><span>Code civil, art. 1240 · LEGIARTI000032041571</span><span class="tampon ok">Vérifié</span></li>
+<li class="anim"><span>version du 01/10/2016 à ce jour</span><span class="tampon ok">En vigueur</span></li>
+<li class="anim faux"><span>Code civil, art. 1240-1</span><span class="tampon ko">Introuvable</span></li>
+</ul>
+</div>
+</div>
+</main>
 </div>
 
-<h2 id="methode">Une méthode qui réduit les erreurs</h2>
-<p>Le serveur impose un protocole à l'assistant : chercher avant de répondre, croiser la loi et la jurisprudence, prendre la version du texte en vigueur à la date des faits, vérifier chaque référence avec <code>verifier_references</code> (une référence introuvable ou une citation absente est signalée), citer la source après chaque affirmation et terminer par un bloc « Sources ». Quand la base ne contient pas la réponse, l'assistant doit le dire.</p>
+{{chiffres}}
 
-<h2 id="outils">Les 11 outils</h2>
-<table>%(outils)s</table>
+<div class="wrap">
+<section id="methode">
+<div class="titre"><span class="num">§ 1</span><div><h2>Chercher, citer, vérifier.</h2></div><p>Le serveur impose une méthode à l'assistant. Il ne répond jamais de mémoire : il lit les textes, puis prouve ce qu'il avance.</p></div>
+<div class="etapes">
+<div><b>01 · CHERCHER</b><h3>Dans les textes officiels</h3><p>Recherche plein texte dans 5 millions d'articles et 1,2 million de décisions, à la date des faits.</p></div>
+<div><b>02 · CITER</b><h3>Après chaque affirmation</h3><p>Article, numéro de pourvoi ou CELEX, lien Légifrance ou EUR-Lex et version utilisée, puis un bloc « Sources ».</p></div>
+<div><b>03 · VÉRIFIER</b><h3>Avant d'écrire</h3><p>Chaque référence est contrôlée : introuvable ou citation absente du texte, elle est signalée au lieu d'être inventée.</p></div>
+</div>
+</section>
 
-<h2 id="limites">Limites</h2>
-<div class="note"><p><b>Information juridique, pas conseil.</b> La version qui fait foi est celle publiée sur <a href="https://www.legifrance.gouv.fr">Légifrance</a> ou <a href="https://eur-lex.europa.eu">EUR-Lex</a>. Pour un cas concret, consultez un avocat.</p></div>
-<p>Service gratuit fourni sans garantie de disponibilité ni d'exactitude, limité à 60 requêtes par minute et par adresse IP. Jurisprudence non exhaustive : seules les décisions diffusées en open data y figurent ; les arrêts des cours d'appel s'arrêtent fin 2023 ; certaines délibérations de la CNIL et certains arrêts du Tribunal de l'UE n'existent pas en texte français. Les versions consolidées du droit de l'UE n'ont pas de valeur officielle.</p>
+<section id="sources">
+<div class="titre"><span class="num">§ 2</span><div><h2>Les sources officielles,<br>mises à jour chaque nuit.</h2></div><p>Données ouvertes de la DILA (Légifrance) et de l'Office des publications de l'Union européenne, rechargées automatiquement tous les jours.</p></div>
+<div class="sources">{{sources}}</div>
+</section>
+</div>
 
-<h2 id="faq">Questions fréquentes</h2>
-%(faq)s
+<div class="bande" id="verification">
+<div class="wrap">
+<div>
+<h2>Une référence fausse<br><em>ne passe pas.</em></h2>
+<p>Les assistants inventent parfois des articles ou des arrêts. Ici, l'outil <code>verifier_references</code> contrôle chaque référence dans la base et chaque citation mot pour mot.</p>
+<p>Ce qui n'existe pas est marqué introuvable. L'assistant doit le corriger ou le retirer.</p>
+</div>
+<div class="terminal" role="img" aria-label="Exemple de vérification de références">
+<div><span class="p">verifier_references</span> <span class="d">« Code civil 1240 », « RGPD art. 17 », « Cass. 99-99.999 »</span></div>
+<div><span class="ok">[OK]</span> Code civil, art. 1240 (version du 2016-10-01 à ce jour, VIGUEUR)</div>
+<div class="d">     LEGIARTI000032041571 · legifrance.gouv.fr</div>
+<div><span class="ok">[OK]</span> RGPD, art. 17, Droit à l'effacement (« droit à l'oubli »)</div>
+<div class="d">     CELEX 32016R0679 · eur-lex.europa.eu</div>
+<div><span class="ko">[INTROUVABLE]</span> Cass. 99-99.999 : ne pas citer cette référence</div>
+</div>
+</div>
+</div>
+
+<div class="wrap">
+<section id="tarifs">
+<div class="titre"><span class="num">§ 3</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
+<div class="tarifs">
+<div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 11 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
+<div class="offre vedette"><span class="etiquette">Recommandé</span><h3>Abonnement</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>Requêtes sans limite quotidienne</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
+<div class="offre libre"><h3>Auto-hébergé</h3><p class="prix">0 €</p><ul><li>Code libre, licence MIT</li><li>Votre serveur, vos bases</li><li>Environ 40 Go de disque</li></ul><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
+</div>
+</section>
+
+<section id="installer">
+<div class="titre"><span class="num">§ 4</span><div><h2>Installer en 30 secondes.</h2></div><p>Une adresse à coller, rien à télécharger. Avec l'abonnement, remplacez-la par votre adresse personnelle.</p></div>
+<div class="install">
+<div><h3>Claude</h3><ol><li>Paramètres, puis <b>Connecteurs</b></li><li><b>Ajouter un connecteur personnalisé</b></li><li>URL : <code>{{site}}/mcp</code></li><li>Demander : « Que dit l'article 1240 du Code civil ? »</li></ol></div>
+<div><h3>ChatGPT</h3><ol><li>Paramètres, puis <b>Applications et connecteurs</b></li><li>Selon l'offre, activer le <b>mode développeur</b></li><li><b>Créer</b> un connecteur, URL ci-dessus, sans authentification</li><li>Le choisir dans le menu des outils</li></ol></div>
+<div><h3>Claude Code, Cursor, VS Code</h3><pre>claude mcp add --transport http \\
+  droit-francais {{site}}/mcp</pre><pre>{"mcpServers":{"droit-francais":
+ {"type":"http","url":"{{site}}/mcp"}}}</pre></div>
+</div>
+</section>
+
+<section id="outils">
+<div class="titre"><span class="num">§ 5</span><div><h2>Onze outils pour l'assistant.</h2></div></div>
+<div class="outils">{{outils}}</div>
+</section>
+
+<section id="faq">
+<div class="titre"><span class="num">§ 6</span><div><h2>Questions fréquentes.</h2></div></div>
+<div class="faq">{{faq}}</div>
+<p class="note"><b>Information juridique, pas conseil.</b> La version qui fait foi est celle de <a href="https://www.legifrance.gouv.fr">Légifrance</a> ou d'<a href="https://eur-lex.europa.eu">EUR-Lex</a>. Jurisprudence non exhaustive : seules les décisions diffusées en open data y figurent (cours d'appel jusqu'à fin 2023). Pour un cas concret, consultez un avocat.</p>
+</section>
+</div>
 
 <footer>
-<p>Données : DILA, Légifrance open data, sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0</a> ; EUR-Lex, Office des publications de l'Union européenne. Ce service n'est ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne.</p>
-<p>Code libre (licence MIT) : <a href="%(repo)s">%(repo_court)s</a>. État technique : <a href="/health">/health</a>.</p>
-<p class="signature"><a href="https://studjoow.com" class="marque"><span>Conçu et maintenu par</span>%(logo)s</a><br>Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.</p>
+<div class="wrap">
+<div><a href="https://studjoow.com" class="marque"><span>Conçu et maintenu par</span>{{logo}}</a><p>Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.</p></div>
+<div><p>Données : DILA, Légifrance open data, sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0</a> ; EUR-Lex, Office des publications de l'Union européenne. Service ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne.</p><p>Code libre (MIT) : <a href="{{repo}}">GitHub</a> · État : <a href="/health">/health</a> · <a href="/llms.txt">llms.txt</a></p></div>
+</div>
 </footer>
-</main>
 </body>
-</html>""" % {"titre": e(TITRE), "desc": e(DESCRIPTION), "site": SITE, "ld": json_ld().replace("</", "<\\/"),
-             "css": CSS, "etat": etat, "stats": stats, "outils": outils, "faq": faq, "repo": REPO,
-             "repo_court": "github.com/JohnJackHouzi/droit-francais-skill", "logo": LOGO_STUDJOOW}
+</html>"""
 
 
 def robots():
@@ -266,6 +524,7 @@ def llms(etat_fn):
         "> " + DESCRIPTION,
         "",
         "Adresse du serveur MCP (Streamable HTTP, sans authentification) : %s/mcp" % SITE,
+        "Essai gratuit : %d requêtes par jour. Abonnement : %s € par mois, adresse personnelle sans limite quotidienne." % (ESSAI_PAR_JOUR, PRIX),
         "Mise à jour des bases : %s" % (r["maj"] or "voir %s/health" % SITE),
         "",
         "## Sources",

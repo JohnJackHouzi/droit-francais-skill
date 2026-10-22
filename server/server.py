@@ -193,7 +193,7 @@ class Garde:
         self.hits = defaultdict(deque)
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http" and scope["path"] not in PUBLIC_PATHS:
+        if scope["type"] == "http" and scope["path"] not in PUBLIC_PATHS and not scope["path"].startswith("/static/"):
             now, q = time.monotonic(), self.hits[client_ip(scope)]
             while q and now - q[0] > 60:
                 q.popleft()
@@ -244,6 +244,19 @@ def build_app():
         og = Path(__file__).resolve().parent.parent / "docs" / "apercu-social.png"
     og_bytes = og.read_bytes() if og.exists() else b""
     app.router.routes.insert(0, Route("/og.png", lambda r: Response(og_bytes, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})))
+    import mimetypes
+    from starlette.routing import Mount
+
+    mimetypes.add_type("font/woff2", ".woff2")
+    from starlette.staticfiles import StaticFiles
+
+    class StaticCache(StaticFiles):
+        async def get_response(self, path, scope):
+            resp = await super().get_response(path, scope)
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            return resp
+
+    app.router.routes.insert(0, Mount("/static", app=StaticCache(directory=str(Path(__file__).resolve().parent / "static")), name="static"))
     app.router.routes.insert(0, Route("/favicon.svg", lambda r: Response(page.ICONE, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})))
     return Garde(app)
 

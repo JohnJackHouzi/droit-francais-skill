@@ -5,6 +5,7 @@ COPY server/requirements.txt server/requirements.txt
 RUN pip install --no-cache-dir -r server/requirements.txt
 COPY scripts scripts
 COPY server/server.py server/page.py server/
+COPY server/static server/static
 COPY docs/apercu-social.png server/og.png
 COPY docker/entrypoint.sh entrypoint.sh
 ENV DROIT_DATA=/data HOST=0.0.0.0 PORT=8000 PYTHONUNBUFFERED=1
