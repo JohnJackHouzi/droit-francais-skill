@@ -10,6 +10,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import Icon
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 TIMEOUT = float(os.environ.get("DROIT_TIMEOUT", "40"))
@@ -47,6 +48,9 @@ mcp = FastMCP(
     stateless_http=True,
     json_response=True,
     transport_security=security,
+    website_url=os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("/"),
+    icons=[Icon(src=os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("/") + "/static/icones/icone-%d.png" % t,
+                mimeType="image/png", sizes=["%dx%d" % (t, t)]) for t in (192, 512)],
 )
 
 
@@ -173,7 +177,7 @@ import conformite  # noqa: E402
 import analyse_ia  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
-PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")
+PUBLIC_PATHS = ("/health", "/ping", "/", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")
 MAX_CORPS = 1_000_000
 _pret = {"t": 0.0, "v": False}
 
@@ -309,7 +313,7 @@ class Garde:
 
 def build_app():
     import json
-    from starlette.responses import PlainTextResponse, Response
+    from starlette.responses import PlainTextResponse, RedirectResponse, Response
     from starlette.routing import Route
 
     def health(request):
@@ -359,7 +363,12 @@ def build_app():
             return resp
 
     app.router.routes.insert(0, Mount("/static", app=StaticCache(directory=str(Path(__file__).resolve().parent / "static")), name="static"))
-    app.router.routes.insert(0, Route("/favicon.svg", lambda r: Response(page.ICONE, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})))
+    icones = Path(__file__).resolve().parent / "static" / "icones"
+    fichiers = {"/favicon.ico": ("favicon.ico", "image/x-icon"), "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png")}
+    for chemin, (nom, type_mime) in fichiers.items():
+        contenu = (icones / nom).read_bytes() if (icones / nom).exists() else b""
+        app.router.routes.insert(0, Route(chemin, lambda r, c=contenu, t=type_mime: Response(c, media_type=t, headers={"Cache-Control": "public, max-age=86400"})))
+    app.router.routes.insert(0, Route("/favicon.svg", lambda r: RedirectResponse("/static/icones/icone-192.png", status_code=301)))
     for chemin, fn in (("/cgv", page.cgv), ("/mentions-legales", page.mentions), ("/confidentialite", page.confidentialite)):
         app.router.routes.insert(0, Route(chemin, lambda r, fn=fn: HTMLResponse(fn(), headers=cache)))
     for route in routes_abonnement(page):

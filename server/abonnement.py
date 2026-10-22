@@ -442,14 +442,100 @@ async def envoyer_email(a, sujet, html_corps, texte):
     return r.status_code < 300
 
 
-def _gabarit(titre, paragraphes):
+LOGO_MAIL = os.environ.get("DROIT_EMAIL_LOGO", "picto")
+POLICE = "Helvetica,Arial,sans-serif"
+SERIF = "Georgia,'Times New Roman',serif"
+
+
+def _bandeau():
+    if LOGO_MAIL == "studjoow":
+        logo = ('<img src="%s/static/email/logo-studjoow.png" width="64" height="64" alt="Studjoow" '
+                'style="display:block;border:0;border-radius:14px">' % SITE)
+    else:
+        logo = ('<img src="%s/static/email/picto.png" width="48" height="48" alt="Studjoow" '
+                'style="display:block;border:0;border-radius:12px">' % SITE)
+    return ('<tr><td style="background:#040e30;background-image:linear-gradient(135deg,#2a1240 0%%,#040e30 60%%);'
+            'padding:26px 32px;border-radius:18px 18px 0 0">'
+            '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+            '<td style="padding-right:14px;vertical-align:middle">%s</td>'
+            '<td style="vertical-align:middle;font-family:%s;color:#ffffff;font-size:20px;line-height:1.1">Droit '
+            '<span style="color:#e0539f;font-style:italic">by Studjoow</span><br>'
+            '<span style="font-family:%s;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a90a3">'
+            'Le droit officiel, sourcé</span></td></tr></table></td></tr>') % (logo, SERIF, POLICE)
+
+
+def _bouton(texte, url):
+    return ('<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 4px"><tr>'
+            '<td style="background:#b1338a;border-radius:10px"><a href="%s" style="display:inline-block;padding:13px 22px;'
+            'font-family:%s;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none">%s</a></td></tr></table>'
+            % (url, POLICE, texte))
+
+
+def _gabarit(titre, blocs, apercu=""):
+    """Mail aux couleurs du site : bandeau sombre, carte blanche, tables pour Gmail et Outlook."""
     import html as h
-    corps = "".join('<p style="margin:0 0 14px">%s</p>' % p for p in paragraphes)
-    return ('<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1b0b16;line-height:1.55">'
-            '<p style="color:#b1338a;font-weight:bold;margin:0 0 6px">Droit français sourcé</p>'
-            '<h1 style="font-size:22px;margin:0 0 18px">%s</h1>%s'
-            '<p style="color:#7e8493;font-size:12px;margin-top:28px">Un service Studjoow · <a href="%s" style="color:#7e8493">%s</a>'
-            ' · Information juridique, pas conseil.</p></div>') % (h.escape(titre), corps, SITE, SITE.split("//")[1])
+    corps = "".join(blocs)
+    return ('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+            '<meta name="color-scheme" content="light only"><title>%(titre)s</title></head>'
+            '<body style="margin:0;padding:0;background:#f2f3fb">'
+            '<div style="display:none;max-height:0;overflow:hidden;opacity:0">%(apercu)s</div>'
+            '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f3fb">'
+            '<tr><td align="center" style="padding:28px 12px">'
+            '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px">'
+            '%(bandeau)s'
+            '<tr><td style="background:#ffffff;padding:34px 32px 30px;border-radius:0 0 18px 18px;font-family:%(police)s;'
+            'color:#1b0b16;font-size:15.5px;line-height:1.6">'
+            '<h1 style="margin:0 0 18px;font-family:%(serif)s;font-weight:normal;font-size:30px;line-height:1.15;color:#1b0b16">%(titre)s</h1>'
+            '%(corps)s</td></tr>'
+            '<tr><td style="padding:22px 32px 6px;font-family:%(police)s;font-size:12.5px;line-height:1.6;color:#7e8493;text-align:center">'
+            'Droit by Studjoow · <a href="%(site)s" style="color:#7e8493">%(domaine)s</a> · '
+            '<a href="%(site)s/compte" style="color:#7e8493">Mon compte</a> · <a href="%(site)s/cgv" style="color:#7e8493">CGV</a><br>'
+            'Information juridique, pas un conseil : pour un cas concret, consultez un avocat.</td></tr>'
+            '</table></td></tr></table></body></html>') % {
+        "titre": h.escape(titre), "apercu": h.escape(apercu), "bandeau": _bandeau(), "corps": corps,
+        "police": POLICE, "serif": SERIF, "site": SITE, "domaine": SITE.split("//")[1]}
+
+
+def _p(texte, style=""):
+    return '<p style="margin:0 0 16px;%s">%s</p>' % (style, texte)
+
+
+def _adresse_bloc(url):
+    return ('<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 8px">'
+            '<tr><td style="background:#f2f3fb;border-left:4px solid #b1338a;border-radius:0 12px 12px 0;padding:16px 18px">'
+            '<div style="font-family:%s;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#7e8493;margin-bottom:6px">'
+            'Votre adresse personnelle</div>'
+            '<div style="font-family:Menlo,Consolas,monospace;font-size:14px;line-height:1.5;color:#1b0b16;word-break:break-all">'
+            '<a href="%s" style="color:#1b0b16;text-decoration:none">%s</a></div></td></tr></table>'
+            '<p style="margin:0 0 22px;font-size:13.5px;color:#7e8493">Gardez-la pour vous : elle donne accès à votre abonnement.</p>'
+            % (POLICE, url, url))
+
+
+def _etapes():
+    lignes = [("Claude", "Paramètres, puis Connecteurs, puis <b>Ajouter un connecteur personnalisé</b>. Collez l'adresse, sans authentification."),
+              ("ChatGPT", "Paramètres, puis Applications et connecteurs, <b>Créer</b> un connecteur avec cette adresse."),
+              ("Essayez", "Demandez : « Que dit l'article 1240 du Code civil ? »")]
+    rangs = "".join(
+        '<tr><td style="vertical-align:top;padding:0 12px 12px 0;width:28px"><div style="width:26px;height:26px;border-radius:13px;'
+        'background:#eddaec;color:#b1338a;font-family:%s;font-weight:bold;font-size:13px;line-height:26px;text-align:center">%d</div></td>'
+        '<td style="vertical-align:top;padding:2px 0 12px;font-size:14.5px;line-height:1.5"><b>%s</b> : %s</td></tr>'
+        % (POLICE, n + 1, t, d) for n, (t, d) in enumerate(lignes))
+    return ('<h2 style="margin:0 0 12px;font-family:%s;font-weight:normal;font-size:21px">L\'installer en 30 secondes</h2>'
+            '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px">%s</table>' % (SERIF, rangs))
+
+
+def _recap(row):
+    o = offre_de(row)
+    fin = (row["fin_periode"] or "")[:10]
+    fin = "%s/%s/%s" % (fin[8:10], fin[5:7], fin[:4]) if fin else ""
+    lignes = [("Offre", "%s, %s € par %s" % (o["nom"], o["prix"], "mois" if o["intervalle"] == "month" else "an")),
+              ("Inclus", "%s requêtes par jour, toutes les sources" % "{:,}".format(o["plafond"]).replace(",", " "))]
+    if fin:
+        lignes.append(("Prochain prélèvement", fin))
+    rangs = "".join('<tr><td style="padding:6px 16px 6px 0;color:#7e8493;font-size:13.5px;white-space:nowrap">%s</td>'
+                    '<td style="padding:6px 0;font-size:14px">%s</td></tr>' % l for l in lignes)
+    return ('<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" '
+            'style="border-top:1px solid #d8dbe4;border-bottom:1px solid #d8dbe4;margin:8px 0 22px">%s</table>' % rangs)
 
 
 async def envoyer_cle_si_besoin(abonnement):
@@ -460,17 +546,23 @@ async def envoyer_cle_si_besoin(abonnement):
         return False
     row = c.execute("SELECT * FROM cles WHERE abonnement=?", (abonnement,)).fetchone()
     url = adresse(cle_de(abonnement, row["version"]))
-    ok = await envoyer_email(row["email"], "Votre adresse personnelle Droit français sourcé", _gabarit(
-        "Votre abonnement est actif", [
-            "Merci pour votre abonnement %s à %s € par %s, sans engagement." % (
-                offre_de(row)["nom"], offre_de(row)["prix"], "mois" if offre_de(row)["intervalle"] == "month" else "an"),
-            "Votre adresse personnelle, à coller comme connecteur dans Claude ou ChatGPT :",
-            '<code style="background:#f2f3fb;padding:8px 10px;border-radius:6px;display:inline-block;word-break:break-all">%s</code>' % url,
-            "Gardez-la pour vous : elle donne accès à votre abonnement. En cas de doute, régénérez-la depuis "
-            '<a href="%s/compte">votre compte</a>, où vous pouvez aussi gérer ou résilier l\'abonnement.' % SITE,
-            "Vous avez demandé l'accès immédiat au service. Vous gardez un droit de rétractation de 14 jours "
-            "(conditions dans nos <a href=\"%s/cgv\">CGV</a>)." % SITE,
-        ]), "Votre adresse personnelle : %s\nGérer ou résilier : %s/compte\nCGV : %s/cgv\n" % (url, SITE, SITE))
+    ok = await envoyer_email(row["email"], "Votre accès Droit by Studjoow est prêt", _gabarit(
+        "Votre accès est prêt.", [
+            _p("Merci pour votre confiance. Votre abonnement est actif : collez l'adresse ci-dessous dans Claude ou "
+               "ChatGPT, et votre assistant s'appuiera sur les textes officiels, vérifiés avant d'être cités."),
+            _adresse_bloc(url),
+            _etapes(),
+            _recap(row),
+            _bouton("Gérer mon abonnement", SITE + "/compte"),
+            _p("Depuis votre compte : facture, carte bancaire, résiliation en un clic, ou nouvelle adresse si vous pensez "
+               "qu'elle a circulé.", "margin-top:14px;font-size:13.5px;color:#7e8493"),
+            _p("Vous avez demandé l'accès immédiat. Vous pouvez changer d'avis dans les 14 jours : vous êtes remboursé, "
+               "moins les jours déjà utilisés (<a href=\"%s/cgv\" style=\"color:#b1338a\">CGV</a>)." % SITE,
+               "font-size:13px;color:#7e8493;margin:0"),
+        ], "Votre adresse personnelle et l'installation en 30 secondes."),
+        "Votre accès Droit by Studjoow est prêt.\n\nVotre adresse personnelle : %s\n\nClaude : Paramètres > Connecteurs > "
+        "Ajouter un connecteur personnalisé, collez l'adresse.\nChatGPT : Paramètres > Applications et connecteurs > Créer.\n\n"
+        "Gérer ou résilier : %s/compte\nCGV : %s/cgv\n" % (url, SITE, SITE))
     if not ok:
         c.execute("UPDATE cles SET email_envoye=0 WHERE abonnement=?", (abonnement,))
     return ok
@@ -501,12 +593,13 @@ async def envoyer_lien_acces(email):
     rows = db().execute("SELECT abonnement FROM cles WHERE lower(email)=lower(?) AND statut!='revoque'", (email,)).fetchall()
     for row in rows:
         lien = "%s/compte/acces?j=%s" % (SITE, jeton_acces(row["abonnement"]))
-        await envoyer_email(email, "Accès à votre abonnement Droit français sourcé", _gabarit(
-            "Accès à votre compte", [
-                "Vous avez demandé à retrouver votre adresse personnelle. Ce lien est valable une heure :",
-                '<a href="%s" style="color:#b1338a">Ouvrir mon compte</a>' % lien,
-                "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-            ]), "Ouvrir mon compte (valable 1 h) : %s\n" % lien)
+        await envoyer_email(email, "Accès à votre abonnement Droit by Studjoow", _gabarit(
+            "Accès à votre compte.", [
+                _p("Vous avez demandé à retrouver votre adresse personnelle. Ce lien est valable une heure :"),
+                _bouton("Ouvrir mon compte", lien),
+                _p("Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : rien ne change.",
+                   "margin-top:16px;font-size:13.5px;color:#7e8493"),
+            ], "Votre lien d'accès, valable une heure."), "Ouvrir mon compte (valable 1 h) : %s\n" % lien)
     return len(rows)
 
 
@@ -585,11 +678,11 @@ async def regenerer_et_envoyer(abonnement):
     envoye = False
     if row["email"]:
         url = adresse(cle)
-        envoye = await envoyer_email(row["email"], "Votre nouvelle adresse personnelle Droit by Studjoow", _gabarit(
-            "Nouvelle adresse personnelle", [
-                "Votre adresse personnelle a été renouvelée par notre équipe : l'ancienne ne fonctionne plus.",
-                "Remplacez-la dans vos connecteurs Claude ou ChatGPT par celle-ci :",
-                '<code style="background:#f2f3fb;padding:8px 10px;border-radius:6px;display:inline-block;word-break:break-all">%s</code>' % url,
-                "Une question : répondez simplement à ce message.",
-            ]), "Votre nouvelle adresse personnelle : %s\n" % url)
+        envoye = await envoyer_email(row["email"], "Votre nouvelle adresse Droit by Studjoow", _gabarit(
+            "Votre nouvelle adresse.", [
+                _p("Par sécurité, votre adresse personnelle a été renouvelée : l'ancienne ne fonctionne plus. "
+                   "Remplacez-la dans vos connecteurs Claude ou ChatGPT."),
+                _adresse_bloc(url),
+                _p("Une question : répondez simplement à ce message.", "font-size:13.5px;color:#7e8493;margin:0"),
+            ], "Remplacez l'ancienne adresse dans vos connecteurs."), "Votre nouvelle adresse personnelle : %s\n" % url)
     return {"regeneree": True, "email_envoye": envoye}

@@ -488,7 +488,9 @@ PAGE = """<!doctype html>
 <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
 <meta name="theme-color" content="#b1338a">
 <meta name="author" content="Studjoow">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/static/icones/icone-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/static/fonts/instrument-serif-normal-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/plus-jakarta-sans-normal-400-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
@@ -742,7 +744,9 @@ def gabarit(titre, contenu, description="", indexer=True):
 <meta name="description" content="%s">
 <meta name="robots" content="%s">
 <meta name="theme-color" content="#b1338a">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/static/icones/icone-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/static/fonts/instrument-serif-normal-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>%s%s%s</style>
 </head>
