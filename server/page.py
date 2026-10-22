@@ -5,7 +5,7 @@ import time
 
 SITE = os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("/")
 REPO = "https://github.com/JohnJackHouzi/droit-francais-skill"
-PRIX = os.environ.get("DROIT_PRIX", "2,99")
+PRIX = os.environ.get("DROIT_PRIX", "4,99")
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
 PLAFOND = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
 LIEN_ABONNEMENT = os.environ.get("DROIT_LIEN_ABONNEMENT", "").strip()

@@ -16,7 +16,7 @@ import httpx
 DATA = Path(os.environ.get("DROIT_DATA", Path(__file__).resolve().parent.parent / "data"))
 BASE = Path(os.environ.get("DROIT_ABONNES_DB", DATA / "abonnes.sqlite"))
 SITE = os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("/")
-PRIX = os.environ.get("DROIT_PRIX", "2,99")
+PRIX = os.environ.get("DROIT_PRIX", "4,99")
 CENTIMES = int(round(float(PRIX.replace(",", ".")) * 100))
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
 PLAFOND_ABONNE = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
