@@ -28,7 +28,8 @@ PROTOCOLE OBLIGATOIRE
 6. Terminer par un bloc « Sources » : une ligne par référence avec identifiant Légifrance ou CELEX et lien, repris des résultats. Pour l'UE, le lien est https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:<id> et la version consolidée utilisée est indiquée.
 7. Si la base ne contient pas la réponse, le dire. Séparer ce que dit le texte (cité) de l'interprétation (signalée comme telle).
 8. Information juridique, pas conseil : renvoyer vers Légifrance pour la version faisant foi et vers un avocat pour un cas concret.
-9. Pour une question touchant au droit de l'UE (données personnelles, IA, plateformes, consommation, droit d'auteur), croiser le texte européen, sa transposition ou son application en droit français et la jurisprudence (CJUE et juridictions françaises).
+9. Pour savoir si un projet est conforme, appeler d'abord analyser_conformite, puis lire chaque texte listé.
+10. Pour une question touchant au droit de l'UE (données personnelles, IA, plateformes, consommation, droit d'auteur), croiser le texte européen, sa transposition ou son application en droit français et la jurisprudence (CJUE et juridictions françaises).
 Limites : base figée à la dernière mise à jour DILA (voir etat_base) ; droit de l'UE limité au périmètre chargé (voir etat_base) et versions consolidées sans valeur officielle ; cours d'appel jusqu'à fin 2023 ; certaines délibérations CNIL sans texte ; jurisprudence non exhaustive (seules les décisions diffusées par la DILA)."""
 
 _hosts = [h for h in os.environ.get("DROIT_ALLOWED_HOSTS", "").split(",") if h]
@@ -154,6 +155,12 @@ async def rechercher_jurisprudence_ue(requete: str, du: str = "", au: str = "", 
 
 
 @mcp.tool()
+async def analyser_conformite(description: str, domaines: str = "") -> str:
+    """Pré-analyse de conformité d'un projet en France et dans l'UE (RGPD, cookies, vente en ligne, abonnements, IA, DSA, droit d'auteur, mentions légales...). description : le projet en quelques phrases (activité, public, données collectées, paiement, prestataires, usage de l'IA). domaines : clés à forcer, séparées par des virgules. Renvoie les obligations probables, la question à vérifier pour chacune et l'outil pour lire le texte. Lire ensuite chaque texte avant de conclure : information juridique, pas certification."""
+    return conformite.analyser(description[:8000], domaines)
+
+
+@mcp.tool()
 async def etat_base() -> str:
     """Comptes, date des dumps et du dernier incrémental DILA appliqué pour chaque base : à citer pour indiquer l'actualité des données."""
     return await run("etat.py")
@@ -162,6 +169,7 @@ async def etat_base() -> str:
 sys.path.insert(0, str(SCRIPTS))
 import etat as etat_bases  # noqa: E402
 import abonnement  # noqa: E402
+import conformite  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
 PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")

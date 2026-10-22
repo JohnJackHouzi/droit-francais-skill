@@ -85,6 +85,7 @@ OUTILS = [
     ("lire_texte_ue", "Règlement, directive, traité ou arrêt de la CJUE, article par article"),
     ("rechercher_droit_ue", "Recherche plein texte dans le droit de l'Union européenne"),
     ("rechercher_jurisprudence_ue", "Recherche dans les arrêts de la Cour de justice et du Tribunal"),
+    ("analyser_conformite", "Pré-analyse de conformité d'un projet : RGPD, cookies, vente en ligne, IA, DSA, droit d'auteur, article par article"),
     ("etat_base", "Date de mise à jour et volume de chaque base"),
 ]
 
@@ -415,7 +416,7 @@ def render(etat_fn):
                  (r["decisions"], "décisions de justice")]
         if r["ue"]:
             items.append((r["ue"], "textes et arrêts de l'UE"))
-        items.append((11, "outils à disposition de l'assistant"))
+        items.append((len(OUTILS), "outils à disposition de l'assistant"))
         chiffres = '<div class="wrap"><div class="chiffres">%s</div></div>' % "".join(
             "<div><b>%s</b><span>%s</span></div>" % (nombre(n), lab) for n, lab in items[:4])
     sources = "".join('<div><code>%s</code><b>%s</b><span>%s</span></div>' % (e(c), e(t), e(d)) for c, t, d in SOURCES)
@@ -564,7 +565,7 @@ PAGE = """<!doctype html>
 <section id="tarifs">
 <div class="titre"><span class="num">§ 4</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
 <div class="tarifs">
-<div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 11 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
+<div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 12 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
 <div class="offre vedette"><span class="etiquette">Recommandé</span><h3>Abonnement</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
 <div class="offre libre"><h3>Auto-hébergé</h3><p class="prix">0 €</p><ul><li>Code libre, licence MIT</li><li>Votre serveur, vos bases</li><li>Environ 70 Go de disque</li></ul><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
 </div>
@@ -582,7 +583,7 @@ PAGE = """<!doctype html>
 </section>
 
 <section id="outils">
-<div class="titre"><span class="num">§ 6</span><div><h2>Onze outils pour l'assistant.</h2></div></div>
+<div class="titre"><span class="num">§ 6</span><div><h2>Douze outils pour l'assistant.</h2></div></div>
 <div class="outils">{{outils}}</div>
 </section>
 
@@ -728,7 +729,7 @@ def page_abonnement(erreur=None):
 <div class="carte">
 <p class="prix">%s €<small>/ mois</small></p>
 <ul><li>Adresse personnelle : %s requêtes par jour, soit bien plus qu'un usage intensif (et 60 par minute au plus)</li>
-<li>Toutes les sources, les 11 outils, bases mises à jour chaque nuit</li>
+<li>Toutes les sources, les 12 outils, bases mises à jour chaque nuit</li>
 <li>Sans engagement : résiliable à tout moment depuis votre compte</li>
 <li>Prix net : Studjoow facture depuis Israël, sans TVA hors d'Israël</li></ul>
 %s

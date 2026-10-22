@@ -14,7 +14,7 @@ Codes, lois, Journal officiel, conventions collectives, jurisprudence (Conseil d
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-7e8493)](LICENSE)
 [![Un projet Studjoow](https://img.shields.io/badge/un%20projet-Studjoow-b1338a)](https://studjoow.com)
 
-**[droit.studjoow.com](https://droit.studjoow.com)** · [Ajouter en 30 secondes](#en-30-secondes) · [Tarifs](#tarifs) · [Outils](#les-11-outils) · [Héberger soi-même](#héberger-son-propre-serveur) · [FAQ](#questions-fréquentes)
+**[droit.studjoow.com](https://droit.studjoow.com)** · [Ajouter en 30 secondes](#en-30-secondes) · [Tarifs](#tarifs) · [Outils](#les-12-outils) · [Héberger soi-même](#héberger-son-propre-serveur) · [FAQ](#questions-fréquentes)
 
 </div>
 
@@ -78,7 +78,7 @@ Avec Claude Code : `claude mcp add --transport http droit-francais https://droit
 
 Les bases françaises sont reconstruites à partir des dumps officiels de la DILA et mises à jour **chaque nuit** avec les fichiers incrémentaux publiés par la DILA. L'outil `etat_base` donne la date du dernier incrément appliqué.
 
-## Les 11 outils
+## Les 12 outils
 
 | Outil | Rôle |
 |---|---|
@@ -92,6 +92,7 @@ Les bases françaises sont reconstruites à partir des dumps officiels de la DIL
 | `lire_texte_ue` | Acte de l'UE article par article (CELEX, « RGPD », « règlement (UE) 2024/1689 ») ou arrêt (« C-131/12 ») |
 | `rechercher_droit_ue` | Recherche plein texte dans les règlements, directives, traités et la Charte |
 | `rechercher_jurisprudence_ue` | Recherche dans les arrêts de la CJUE et du Tribunal |
+| `analyser_conformite` | Pré-analyse de conformité d'un projet (RGPD, cookies, vente en ligne, abonnements, IA, DSA, droit d'auteur...) : obligations probables, question à vérifier et texte à lire pour chacune |
 | `etat_base` | Comptes et date de mise à jour de chaque base |
 
 ### Protocole de sourçage imposé au modèle
