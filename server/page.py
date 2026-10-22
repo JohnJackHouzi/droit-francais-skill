@@ -985,6 +985,7 @@ def md_html(texte):
         t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
         t = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<i>\1</i>", t)
         t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+        t = re.sub(r"\[([^\]]+)\]\((https?://[^)\s\"]+)\)", r'<a href="\2" target="_blank" rel="noopener">\1</a>', t)
         return insec(t)
 
     def fermer():

@@ -1,52 +1,46 @@
+"""Analyse de conformité en ligne : le serveur repère les obligations (conformite.py), lit lui-même chaque texte
+officiel dans les bases, puis demande au modèle, en un seul appel structuré, de les appliquer au projet.
+Les citations renvoyées sont contrôlées mot pour mot dans le texte lu ; le rapport est mis en page ici."""
+
 import asyncio
 import json
 import os
+import re
 import secrets
 import time
+import unicodedata
 
 import httpx
+
+import conformite
 
 CLE = os.environ.get("DROIT_OPENAI_API_KEY", "")
 MODELE = os.environ.get("DROIT_IA_MODELE", "gpt-4.1-mini")
 API = os.environ.get("DROIT_OPENAI_API", "https://api.openai.com/v1")
-TOURS_MAX = int(os.environ.get("DROIT_IA_TOURS", "12"))
-SORTIE_OUTIL_MAX = 6000
+TEXTE_MAX = 1800
 QUOTAS = {"particulier": int(os.environ.get("DROIT_IA_PAR_MOIS", "5")),
           "pro": int(os.environ.get("DROIT_IA_PAR_MOIS_PRO", "100"))}
+STATUTS = ("MANQUANT", "À VÉRIFIER", "CONFORME EN APPARENCE")
 
-CONSIGNE = """Tu rédiges une pré-analyse de conformité d'un projet au regard du droit français et du droit de l'Union européenne, pour un entrepreneur non juriste.
-Méthode obligatoire :
-1. Appelle d'abord analyser_conformite avec la description du projet.
-2. Lis les textes des points les plus importants (au moins un par domaine détecté) avec lire_article ou lire_texte_ue : ne cite jamais un article de mémoire.
-3. Pour chaque obligation, classe-la : MANQUANT, À VÉRIFIER (la description ne dit rien) ou CONFORME EN APPARENCE. Sans information, c'est À VÉRIFIER, jamais conforme.
-4. Contrôle avec verifier_references toutes les références que tu cites ; retire celles qui sont introuvables.
-Rapport en français, en Markdown simple (titres ##, listes, gras) :
-## Synthèse (3 à 5 phrases, les risques principaux)
-## Priorités (les 5 actions les plus importantes, dans l'ordre)
-## Détail par domaine (pour chaque point : statut, ce que dit le texte avec un court extrait entre guillemets, ce qu'il faut faire, référence)
-## Questions pour un avocat
-## Sources (une ligne par texte : intitulé, identifiant Légifrance ou CELEX)
-Termine par : « Pré-analyse générée par une IA à partir des textes officiels : information juridique, pas un avis. »
-Pas de tiret cadratin. Phrases courtes."""
+CONSIGNE = """Tu rédiges une pré-analyse de conformité d'un projet au regard du droit français et européen, pour un entrepreneur non juriste.
+Tu reçois la description du projet puis une liste numérotée d'obligations, chacune avec le TEXTE OFFICIEL lu dans la base (Légifrance, EUR-Lex) et une question de contrôle.
+Pour CHAQUE obligation (aucune oubliée, même identifiant) :
+- statut : MANQUANT (la description montre que ce n'est pas fait), À VÉRIFIER (la description ne permet pas de savoir) ou CONFORME EN APPARENCE (la description montre que c'est fait). Dans le doute, À VÉRIFIER.
+- constat : ce que le texte exige, appliqué à CE projet, en 1 ou 2 phrases simples et concrètes.
+- action : ce qu'il faut faire dans ce projet, concret (où, quoi). Chaîne vide si conforme.
+- citation : un court extrait (8 à 30 mots) COPIÉ MOT POUR MOT du texte officiel fourni, sans rien changer. Chaîne vide si aucun extrait utile. Jamais la question de contrôle.
+Puis : synthese (3 à 5 phrases sur les vrais risques de CE projet), priorites (5 actions concrètes, dans l'ordre), questions_avocat (3 à 5).
+Français, phrases courtes, pas de tiret cadratin. Information juridique, pas un avis."""
 
-
-def _fn(nom, description, proprietes, requis):
-    return {"type": "function", "function": {"name": nom, "description": description, "parameters": {
-        "type": "object", "properties": proprietes, "required": requis, "additionalProperties": False}}}
-
-
-S = {"type": "string"}
-OUTILS = [
-    _fn("analyser_conformite", "Liste les obligations probables du projet et le texte à lire pour chacune.",
-        {"description": S, "domaines": S}, ["description", "domaines"]),
-    _fn("lire_article", "Texte d'un article de code ou de loi en vigueur. code : nom du code ou identifiant LEGITEXT.",
-        {"code": S, "numero": S}, ["code", "numero"]),
-    _fn("lire_texte_ue", "Article d'un acte de l'UE. reference : RGPD, RIA, DSA, CELEX...",
-        {"reference": S, "article": S}, ["reference", "article"]),
-    _fn("rechercher_loi", "Recherche plein texte dans les codes et lois.", {"requete": S}, ["requete"]),
-    _fn("verifier_references", "Vérifie que des références existent.",
-        {"references": {"type": "array", "items": S}}, ["references"]),
-]
+SCHEMA = {"type": "object", "additionalProperties": False, "required": ["synthese", "priorites", "obligations", "questions_avocat"],
+          "properties": {
+              "synthese": {"type": "string"},
+              "priorites": {"type": "array", "items": {"type": "string"}},
+              "questions_avocat": {"type": "array", "items": {"type": "string"}},
+              "obligations": {"type": "array", "items": {
+                  "type": "object", "additionalProperties": False, "required": ["id", "statut", "constat", "action", "citation"],
+                  "properties": {"id": {"type": "integer"}, "statut": {"type": "string", "enum": list(STATUTS)},
+                                 "constat": {"type": "string"}, "action": {"type": "string"}, "citation": {"type": "string"}}}}}}
 
 _travaux = {}
 
@@ -61,57 +55,109 @@ def _purger():
         del _travaux[k]
 
 
-async def _appeler(executer, nom, args):
+def _norm(t):
+    t = unicodedata.normalize("NFD", (t or "").lower().replace("’", "'").replace(" ", " "))
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9']+", " ", t).strip()
+
+
+def _decouper(sortie):
+    """Sépare l'en-tête renvoyé par les scripts (identifiant, lien) du texte de l'article."""
+    lignes = sortie.splitlines()
+    ident = lien = ""
+    for l in (x.strip() for x in lignes[:14]):
+        if l.startswith(("ID Légifrance", "ID :")) and not ident:
+            ident = l.split(":", 1)[1].split("|")[0].strip()
+        elif l.startswith("CELEX") and not ident:
+            ident = "CELEX " + l.split(":", 1)[1].split("|")[0].strip()
+        elif l.startswith("Lien") and not lien:
+            lien = l.split(":", 1)[1].strip()
+    seps = [k for k, l in enumerate(lignes) if len(l.strip()) > 20 and set(l.strip()) == {"-"}]
+    if seps:
+        corps = "\n".join(lignes[seps[-1] + 1:])
+    else:
+        k = next((k for k, l in enumerate(lignes) if l.strip().startswith("Lien")), -1)
+        corps = "\n".join(lignes[k + 1:])
+    corps = corps.split("\nLiens (historique")[0].split("\nNota :")[0].replace("**", "").strip()
+    return ident, lien, corps
+
+
+async def _lire(executer, outil, args):
     try:
-        if nom == "analyser_conformite":
-            sortie = await executer["analyser_conformite"](args.get("description", ""), args.get("domaines", ""))
-        elif nom == "lire_article":
-            sortie = await executer["lire_article"](args.get("code", ""), args.get("numero", ""))
-        elif nom == "lire_texte_ue":
-            sortie = await executer["lire_texte_ue"](args.get("reference", ""), args.get("article", ""), 8000)
-        elif nom == "rechercher_loi":
-            sortie = await executer["rechercher_loi"](args.get("requete", ""), limite=5)
-        elif nom == "verifier_references":
-            sortie = await executer["verifier_references"](list(args.get("references") or [])[:20])
-        else:
-            sortie = "Outil inconnu."
+        if outil == "lire_article":
+            return await executer["lire_article"](args["code"], args["numero"])
+        if outil == "lire_texte_ue":
+            return await executer["lire_texte_ue"](args["reference"], args["article"], 6000)
+        return await executer["rechercher_loi"](args["requete"], limite=3)
     except Exception as exc:
-        sortie = "Erreur de l'outil : %s" % type(exc).__name__
-    return sortie[:SORTIE_OUTIL_MAX]
+        return "Lecture impossible : %s" % type(exc).__name__
+
+
+def _rendre(trouves, obligations, rep):
+    par_id = {o.get("id"): o for o in rep.get("obligations", []) if isinstance(o, dict)}
+    compte = dict.fromkeys(STATUTS, 0)
+    l = ["## Synthèse", rep.get("synthese", "").strip(), "", "## Priorités"]
+    l += ["%d. %s" % (k + 1, p) for k, p in enumerate(rep.get("priorites", [])[:5])]
+    l += ["", "## Détail par domaine"]
+    sources = []
+    for cle, titre, _, _ in trouves:
+        l += ["", "### %s" % titre]
+        for ob in [o for o in obligations if o["domaine"] == cle]:
+            r = par_id.get(ob["id"], {})
+            statut = r.get("statut") if r.get("statut") in compte else "À VÉRIFIER"
+            compte[statut] += 1
+            l.append("- **%s** · %s" % (ob["intitule"], statut))
+            if r.get("constat"):
+                l.append("  %s" % r["constat"].strip())
+            cit = (r.get("citation") or "").strip().strip("«»\"' ").strip()
+            if cit and len(_norm(cit)) > 12 and _norm(cit) in _norm(ob["texte"]):
+                l.append("  « %s »" % cit)
+            if r.get("action") and statut != "CONFORME EN APPARENCE":
+                l.append("  À faire : %s" % r["action"].strip())
+            if ob["lien"]:
+                l.append("  Source : [%s](%s)" % (ob["ident"] or "texte officiel", ob["lien"]))
+                deja = [k for k, src in enumerate(sources) if src[2] == ob["lien"]]
+                if deja:
+                    k = deja[0]
+                    sources[k] = (sources[k][0].split(", art.")[0], sources[k][1], sources[k][2])
+                else:
+                    sources.append((ob["intitule"].split(" : ")[0], ob["ident"], ob["lien"]))
+    l += ["", "## Questions pour un avocat"] + ["- %s" % q for q in rep.get("questions_avocat", [])[:5]]
+    l += ["", "## Sources"] + ["- %s · [%s](%s)" % s for s in sources]
+    l += ["", "Pré-analyse générée par une IA à partir des textes officiels : information juridique, pas un avis."]
+    return "\n".join(l), compte
 
 
 async def _executer(job, description, executer):
-    messages = [{"role": "system", "content": CONSIGNE},
-                {"role": "user", "content": "Projet à analyser :\n\n" + description}]
     jetons = {"entree": 0, "sortie": 0}
     try:
-        async with httpx.AsyncClient(base_url=API, timeout=120, headers={"Authorization": "Bearer " + CLE}) as client:
-            for tour in range(TOURS_MAX):
-                final = tour == TOURS_MAX - 1
-                corps = {"model": MODELE, "messages": messages, "temperature": 0.1}
-                if not final:
-                    corps["tools"] = OUTILS
-                r = await client.post("/chat/completions", json=corps)
-                d = r.json()
-                if r.status_code >= 400:
-                    raise RuntimeError((d.get("error") or {}).get("message", "erreur %d" % r.status_code))
-                u = d.get("usage") or {}
-                jetons["entree"] += u.get("prompt_tokens", 0)
-                jetons["sortie"] += u.get("completion_tokens", 0)
-                msg = d["choices"][0]["message"]
-                appels = msg.get("tool_calls") or []
-                messages.append({k: v for k, v in msg.items() if k in ("role", "content", "tool_calls")})
-                if not appels:
-                    job.update(etat="fini", rapport=msg.get("content") or "", jetons=jetons)
-                    return
-                job["etape"] = "Lecture des textes (%d outils appelés)" % (job.get("appels", 0) + len(appels))
-                job["appels"] = job.get("appels", 0) + len(appels)
-                sorties = await asyncio.gather(*[
-                    _appeler(executer, a["function"]["name"], json.loads(a["function"].get("arguments") or "{}"))
-                    for a in appels])
-                for a, sortie in zip(appels, sorties):
-                    messages.append({"role": "tool", "tool_call_id": a["id"], "content": sortie})
-        job.update(etat="erreur", erreur="Analyse trop longue, réessayer avec une description plus courte.", jetons=jetons)
+        trouves = conformite.detecter(description)
+        obligations = []
+        for cle, titre, indices, obls in trouves:
+            for outil, args, intitule, question in obls:
+                obligations.append({"id": len(obligations) + 1, "domaine": cle, "outil": outil, "args": args,
+                                    "intitule": intitule, "question": question})
+        job["etape"] = "Lecture de %d textes officiels" % len(obligations)
+        sorties = await asyncio.gather(*[_lire(executer, o["outil"], o["args"]) for o in obligations])
+        blocs = []
+        for o, sortie in zip(obligations, sorties):
+            o["ident"], o["lien"], o["texte"] = _decouper(sortie)
+            blocs.append("[%d] %s\nQuestion de contrôle : %s\nTexte officiel :\n%s" % (
+                o["id"], o["intitule"], o["question"], o["texte"][:TEXTE_MAX]))
+        job["etape"] = "Rédaction du rapport (%d obligations)" % len(obligations)
+        corps = {"model": MODELE, "temperature": 0.1,
+                 "response_format": {"type": "json_schema", "json_schema": {"name": "rapport", "strict": True, "schema": SCHEMA}},
+                 "messages": [{"role": "system", "content": CONSIGNE},
+                              {"role": "user", "content": "PROJET :\n%s\n\nOBLIGATIONS :\n\n%s" % (description, "\n\n".join(blocs))}]}
+        async with httpx.AsyncClient(base_url=API, timeout=180, headers={"Authorization": "Bearer " + CLE}) as client:
+            r = await client.post("/chat/completions", json=corps)
+        d = r.json()
+        if r.status_code >= 400:
+            raise RuntimeError((d.get("error") or {}).get("message", "erreur %d" % r.status_code))
+        u = d.get("usage") or {}
+        jetons.update(entree=u.get("prompt_tokens", 0), sortie=u.get("completion_tokens", 0))
+        rapport, compte = _rendre(trouves, obligations, json.loads(d["choices"][0]["message"]["content"]))
+        job.update(etat="fini", rapport=rapport, jetons=jetons, compte=compte, appels=len(obligations))
     except Exception as exc:
         job.update(etat="erreur", erreur="Le service d'analyse est indisponible (%s)." % str(exc)[:120], jetons=jetons)
 

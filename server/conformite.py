@@ -143,6 +143,19 @@ def detecter(description, forces=()):
     return trouves
 
 
+LEGIARTI = {("LEGITEXT000005789847", "1-1"): "LEGIARTI000049568614", ("LEGITEXT000006068624", "82"): "LEGIARTI000037813978",
+            ("LEGITEXT000005616341", "2"): "LEGIARTI000006421210", ("LEGITEXT000006068716", "1"): "LEGIARTI000049006050"}
+
+
+def reference(outil, args):
+    """Chaîne acceptée par verifier_references pour contrôler le texte et ses citations."""
+    if outil == "lire_article":
+        return LEGIARTI.get((args["code"], args["numero"]), "%s %s" % (args["code"], args["numero"]))
+    if outil == "lire_texte_ue":
+        return "%s art. %s" % (args["reference"], args["article"])
+    return ""
+
+
 def _appel(outil, args):
     return "%s(%s)" % (outil, ", ".join('%s="%s"' % (k, v) for k, v in args.items()))
 
@@ -163,7 +176,9 @@ def analyser(description, domaines=""):
         lignes += ["", "## %s [%s] (indices : %s)" % (titre, cle, ", ".join(indices))]
         for outil, args, intitule, question in obligations:
             n += 1
-            lignes.append("%d. %s\n   À vérifier : %s\n   Lire : %s" % (n, intitule, question, _appel(outil, args)))
+            ref = reference(outil, args)
+            lignes.append("%d. %s\n   Question de contrôle (n'est PAS le texte de loi) : %s\n   Lire : %s%s" % (
+                n, intitule, question, _appel(outil, args), "\n   Référence vérifiable : %s" % ref if ref else ""))
     if absents:
         lignes += ["", "Domaines non détectés (à ajouter avec le paramètre domaines si le projet est concerné) : "
                    + ", ".join("%s (%s)" % (d[0], d[1]) for d in absents)]
@@ -175,7 +190,8 @@ def analyser(description, domaines=""):
         "Si la description ne dit rien, c'est À VÉRIFIER, jamais CONFORME.",
         "3. Chaque constat cite son article et l'extrait utile, copié du texte lu.",
         "4. Chercher la jurisprudence ou les sanctions seulement pour les points MANQUANTS importants.",
-        "5. Contrôler toutes les références avec verifier_references avant de les citer.",
+        "5. Contrôler les références avec verifier_references en utilisant la « Référence vérifiable » donnée ; "
+        "chaque citation entre guillemets passe dans le paramètre citations et doit être TROUVÉE, sinon la reformuler sans guillemets.",
         "6. Terminer par : les 5 priorités à corriger, les questions à poser à un avocat, puis le bloc Sources.",
     ]
     return "\n".join(lignes)
