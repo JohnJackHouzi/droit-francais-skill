@@ -6,7 +6,7 @@
 
 **Le droit français et européen officiel dans votre assistant IA, chaque réponse sourcée article par article.**
 
-Codes, lois, Journal officiel, conventions collectives, jurisprudence (Conseil d'État, Cour de cassation, Conseil constitutionnel, CNIL) et droit de l'Union européenne (EUR-Lex), en données ouvertes, gratuit et sans inscription.
+Codes, lois, Journal officiel, conventions collectives, jurisprudence (Conseil d'État, Cour de cassation, Conseil constitutionnel, CNIL) et droit de l'Union européenne (EUR-Lex), en données ouvertes. Essai gratuit sans inscription, abonnement à 2,99 € par mois, ou auto-hébergement gratuit : le code est libre, l'hébergement est clé en main.
 
 [![Serveur en ligne](https://img.shields.io/website?url=https%3A%2F%2Fdroit.studjoow.com%2Fping&label=droit.studjoow.com&up_message=en%20ligne&down_message=hors%20ligne)](https://droit.studjoow.com)
 [![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-040e30)](https://modelcontextprotocol.io)
@@ -14,7 +14,7 @@ Codes, lois, Journal officiel, conventions collectives, jurisprudence (Conseil d
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-7e8493)](LICENSE)
 [![Un projet Studjoow](https://img.shields.io/badge/un%20projet-Studjoow-b1338a)](https://studjoow.com)
 
-**[droit.studjoow.com](https://droit.studjoow.com)** · [Ajouter en 30 secondes](#en-30-secondes) · [Outils](#les-11-outils) · [Héberger soi-même](#héberger-son-propre-serveur) · [FAQ](#questions-fréquentes)
+**[droit.studjoow.com](https://droit.studjoow.com)** · [Ajouter en 30 secondes](#en-30-secondes) · [Tarifs](#tarifs) · [Outils](#les-11-outils) · [Héberger soi-même](#héberger-son-propre-serveur) · [FAQ](#questions-fréquentes)
 
 </div>
 
@@ -35,7 +35,7 @@ Exemple de réponse attendue :
 
 ## En 30 secondes
 
-Adresse du serveur : **`https://droit.studjoow.com/mcp`** (sans authentification)
+Adresse publique (essai gratuit) : **`https://droit.studjoow.com/mcp`** (sans authentification). Abonnés : coller à la place l'adresse personnelle `https://droit.studjoow.com/mcp/<clé>` reçue après le paiement.
 
 ### Dans Claude (claude.ai, application de bureau ou mobile)
 
@@ -104,10 +104,20 @@ Les bases françaises sont reconstruites à partir des dumps officiels de la DIL
 6. Terminer par un bloc « Sources » avec identifiants et liens.
 7. Dire clairement ce que la base ne contient pas.
 
+## Tarifs
+
+| Offre | Prix | Ce qui est inclus |
+|---|---|---|
+| Essai | 0 € | 20 appels d'outils par jour et par IP sur l'adresse publique, sans inscription |
+| Abonnement | 2,99 € / mois, sans engagement | Adresse personnelle sans limite quotidienne, résiliable à tout moment : [s'abonner](https://droit.studjoow.com/abonnement) |
+| Auto-hébergé | 0 € | Code libre (MIT), vos serveurs et vos bases : [voir plus bas](#héberger-son-propre-serveur) |
+
+Le code est libre, l'hébergement est clé en main : l'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour chaque nuit. Conditions : [CGV](https://droit.studjoow.com/cgv), [confidentialité](https://droit.studjoow.com/confidentialite), [mentions légales](https://droit.studjoow.com/mentions-legales).
+
 ## Limites
 
-- Service **gratuit, sans garantie** de disponibilité ni d'exactitude ; il peut être lent, limité ou arrêté.
-- Limite de **60 requêtes par minute** par adresse IP.
+- Service **sans garantie** de disponibilité continue ni d'exhaustivité ; il peut être lent sur les recherches larges.
+- Limite anti-abus de **60 requêtes par minute** (par IP, ou par adresse personnelle pour les abonnés).
 - Jurisprudence **non exhaustive** : seules les décisions diffusées en open data y figurent. Les cours d'appel (CAPP) s'arrêtent fin 2023. Environ 17 000 délibérations CNIL n'ont pas de texte (non communicables). Une partie des arrêts du Tribunal de l'UE n'existe pas en texte français. Quelques dates aberrantes existent dans les sources (ex. 2999-01-01).
 - Les versions consolidées du droit de l'UE n'ont **pas de valeur officielle**.
 - **Information juridique, pas conseil.**
@@ -138,6 +148,7 @@ Au premier démarrage, le conteneur télécharge les dumps DILA un par un dans l
 | Adresse | Rôle |
 |---|---|
 | `/mcp` | Serveur MCP (Streamable HTTP, sans état) |
+| `/mcp/<clé>` | Adresse personnelle d'un abonné (si l'abonnement Stripe est configuré) |
 | `/` | Page d'accueil (mode d'emploi, état des bases) |
 | `/health` | État des bases en JSON : 200 si prêtes, 503 sinon |
 | `/ping` | Sonde de vie du conteneur |
@@ -154,6 +165,21 @@ Au premier démarrage, le conteneur télécharge les dumps DILA un par un dans l
 | `DROIT_AUTO_UPDATE` | 1 | 0 : pas de mise à jour quotidienne |
 | `DROIT_UPDATE_HOUR_UTC` | 3 | Heure de la mise à jour quotidienne |
 | `DROIT_MIN_FREE_GO` | 15 | Seuil d'arrêt de l'installation |
+
+Un serveur auto-hébergé est **illimité par défaut** : l'essai et l'abonnement ne s'activent que si les trois variables `DROIT_SECRET`, `DROIT_STRIPE_SECRET_KEY` et `DROIT_STRIPE_WEBHOOK_SECRET` sont renseignées.
+
+| Variable (abonnement, facultatif) | Rôle |
+|---|---|
+| `DROIT_SECRET` | Secret de 64 caractères hexadécimaux : dérive les adresses personnelles et sale les IP de l'essai. Le changer invalide toutes les adresses |
+| `DROIT_STRIPE_SECRET_KEY` | Clé secrète Stripe (ou clé restreinte) |
+| `DROIT_STRIPE_WEBHOOK_SECRET` | Secret du webhook `https://<domaine>/stripe/webhook` (événements `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`) |
+| `DROIT_STRIPE_PRICE_ID` | Prix Stripe mensuel ; vide : prix créé à la volée depuis `DROIT_PRIX` |
+| `DROIT_STRIPE_PORTAL_CONFIG` | Configuration du portail client Stripe (`bpc_...`) ; vide : configuration par défaut du compte |
+| `DROIT_PRIX` / `DROIT_ESSAI_PAR_JOUR` | `2,99` / `20` |
+| `DROIT_RESEND_API_KEY` / `DROIT_EMAIL_FROM` | Envoi de l'adresse personnelle et des liens d'accès par Resend |
+| `DROIT_MEDIATEUR` | Coordonnées du médiateur de la consommation affichées dans les CGV |
+
+Les abonnés sont dans `/data/abonnes.sqlite` (jamais dans Git) : seule l'empreinte SHA-256 de chaque adresse personnelle y est stockée, et les compteurs d'essai (IP hachées) sont purgés au bout de 2 jours.
 
 **Envoyer des bases déjà construites** plutôt que de les construire sur le serveur (conseillé sur une petite machine) :
 
@@ -172,7 +198,10 @@ Le Model Context Protocol est un standard ouvert qui permet à un assistant IA (
 Chaque référence peut être vérifiée par `verifier_references`, qui signale une référence introuvable ou une citation absente du texte. Cela réduit fortement les inventions, sans remplacer la lecture du texte officiel ni l'avis d'un professionnel.
 
 **Mes questions sont-elles enregistrées ?**
-Le serveur ne garde ni compte ni historique des questions ; il reçoit seulement les recherches envoyées par l'assistant. Les journaux techniques du serveur web (adresse IP, heure, code de réponse) servent à la limite de débit et au diagnostic.
+Non. Le serveur ne garde aucun historique des questions. Pour l'essai, il conserve seulement une empreinte non réversible de l'adresse IP et un compteur par jour, supprimés au bout de 2 jours. Détails : [politique de confidentialité](https://droit.studjoow.com/confidentialite).
+
+**Pourquoi payer si le code est libre ?**
+L'abonnement paie l'hébergement clé en main : serveur, 33 Go de bases indexées, mises à jour quotidiennes de la DILA et maintenance. Héberger son propre serveur reste gratuit.
 
 **Puis-je l'utiliser dans un produit ?**
 Le code est sous licence MIT. Les données restent soumises à la Licence Ouverte 2.0 (DILA) et aux conditions de réutilisation d'EUR-Lex. Pour un usage intensif, hébergez votre propre serveur.

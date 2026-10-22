@@ -31,7 +31,14 @@ FAQ = [
      "Assez pour essayer sur de vraies questions avant de vous abonner." % ESSAI_PAR_JOUR),
     ("Comment fonctionne l'abonnement ?",
      "%s € par mois, sans engagement. Après le paiement, vous recevez une adresse personnelle à coller comme "
-     "connecteur dans Claude ou ChatGPT, sans limite quotidienne. Résiliable à tout moment." % PRIX),
+     "connecteur dans Claude ou ChatGPT, sans limite quotidienne. Résiliable à tout moment depuis la page Mon compte, "
+     "avec effet à la fin du mois payé." % PRIX),
+    ("Que se passe-t-il quand l'essai gratuit est épuisé ?",
+     "L'assistant reçoit un message clair indiquant que le quota du jour est atteint, avec le lien d'abonnement. "
+     "L'essai repart le lendemain à minuit (UTC)."),
+    ("Mon adresse personnelle a fuité, que faire ?",
+     "Régénérez-la depuis la page Mon compte : l'ancienne cesse aussitôt de fonctionner. Si vous l'avez perdue, "
+     "un lien d'accès est envoyé à l'e-mail utilisé au paiement."),
     ("Les réponses sont-elles fiables ?",
      "Chaque référence peut être contrôlée par l'outil verifier_references avant d'être citée : une référence "
      "introuvable ou une citation absente du texte est signalée. Cela réduit fortement les inventions, sans "
@@ -353,6 +360,7 @@ def render(etat_fn):
     outils = "".join("<p><code>%s</code>%s</p>" % (e(n), e(d)) for n, d in OUTILS)
     faq = "".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in FAQ)
     v = {
+        "pied": PIED,
         "titre": e(TITRE), "desc": e(DESCRIPTION), "site": SITE, "ld": json_ld().replace("</", "<\\/"),
         "fonts": FONTS, "css": CSS, "etat": etat, "chiffres": chiffres, "sources": sources, "outils": outils,
         "faq": faq, "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
@@ -496,24 +504,22 @@ PAGE = """<!doctype html>
 </section>
 </div>
 
-<footer>
-<div class="wrap">
-<div><a href="https://studjoow.com" class="marque"><span>Conçu et maintenu par</span>{{logo}}</a><p>Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.</p></div>
-<div><p>Données : DILA, Légifrance open data, sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0</a> ; EUR-Lex, Office des publications de l'Union européenne. Service ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne.</p><p>Code libre (MIT) : <a href="{{repo}}">GitHub</a> · État : <a href="/health">/health</a> · <a href="/llms.txt">llms.txt</a></p></div>
-</div>
-</footer>
+{{pied}}
 </body>
 </html>"""
 
 
 def robots():
-    return "User-agent: *\nAllow: /\nDisallow: /mcp\n\nSitemap: %s/sitemap.xml\n" % SITE
+    return "User-agent: *\nAllow: /\nDisallow: /mcp\nDisallow: /compte\nDisallow: /merci\nDisallow: /abonnement\n\nSitemap: %s/sitemap.xml\n" % SITE
 
 
 def sitemap():
     return ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
             "<url><loc>%s/</loc><changefreq>daily</changefreq></url>"
-            "<url><loc>%s/llms.txt</loc><changefreq>weekly</changefreq></url></urlset>\n" % (SITE, SITE))
+            "<url><loc>%s/llms.txt</loc><changefreq>weekly</changefreq></url>"
+            "<url><loc>%s/cgv</loc><changefreq>monthly</changefreq></url>"
+            "<url><loc>%s/mentions-legales</loc><changefreq>yearly</changefreq></url>"
+            "<url><loc>%s/confidentialite</loc><changefreq>yearly</changefreq></url></urlset>\n" % ((SITE,) * 5))
 
 
 def llms(etat_fn):
@@ -523,8 +529,10 @@ def llms(etat_fn):
         "",
         "> " + DESCRIPTION,
         "",
-        "Adresse du serveur MCP (Streamable HTTP, sans authentification) : %s/mcp" % SITE,
-        "Essai gratuit : %d requêtes par jour. Abonnement : %s € par mois, adresse personnelle sans limite quotidienne." % (ESSAI_PAR_JOUR, PRIX),
+        "Adresse publique du serveur MCP (Streamable HTTP, sans authentification) : %s/mcp" % SITE,
+        "Essai gratuit : %d appels d'outils par jour et par IP sur l'adresse publique." % ESSAI_PAR_JOUR,
+        "Abonnement : %s € par mois, sans engagement, adresse personnelle %s/mcp/<clé> sans limite quotidienne : %s/abonnement" % (PRIX, SITE, SITE),
+        "Auto-hébergement : gratuit, code sous licence MIT (%s)." % REPO,
         "Mise à jour des bases : %s" % (r["maj"] or "voir %s/health" % SITE),
         "",
         "## Sources",
@@ -546,7 +554,248 @@ def llms(etat_fn):
         "## Liens",
         "- Code source : %s" % REPO,
         "- État des bases : %s/health" % SITE,
+        "- Conditions générales de vente : %s/cgv" % SITE,
         "- Conçu et maintenu par Studjoow, studio créatif et tech : https://studjoow.com",
         "",
     ]
     return "\n".join(lignes)
+
+
+EDITEUR = ("John Houzi, nom commercial Studjoow, travailleur indépendant agréé en Israël (Ossek Mourshé), "
+           "Tax ID 337927834, 49 Abarbanel, Tel Aviv 6608912, Israël")
+CONTACT = "hello@studjoow.com"
+MEDIATEUR = os.environ.get("DROIT_MEDIATEUR", "").strip()
+
+CSS_DOC = """
+.doc{max-width:760px;margin:24px 0 0}
+.doc h1{font-size:clamp(40px,6vw,64px);margin:0 0 18px}
+.doc h2{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;margin:44px 0 12px}
+.doc h3{font:600 17px var(--sans);margin:26px 0 8px}
+.doc p,.doc li{color:var(--ink)}.doc ul,.doc ol{padding-left:20px}
+.doc .maj{font:12.5px var(--mono);color:var(--muted)}
+.carte{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:28px 26px;margin:22px 0;max-width:640px}
+.carte h2{margin-top:0}
+.coche{display:flex;gap:12px;align-items:flex-start;margin:14px 0;font-size:15px;color:var(--ink)}
+.coche input{margin-top:4px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.champ{width:100%;font:15px var(--mono);padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+.alerte{border-left:3px solid var(--ko);background:var(--paper);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+.info{border-left:3px solid var(--ok);background:var(--paper);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+.statut{font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:6px;border:1.5px solid currentColor}
+.statut.actif{color:var(--ok)}.statut.suspendu{color:#f99c00}.statut.revoque{color:var(--ko)}
+dl.fiche-compte{display:grid;grid-template-columns:170px 1fr;gap:8px 16px;margin:18px 0;font-size:15px}
+dl.fiche-compte dt{color:var(--muted)}dl.fiche-compte dd{margin:0}
+form.ligne{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}form.ligne .champ{flex:1;min-width:220px}
+@media (max-width:480px){dl.fiche-compte{grid-template-columns:1fr}}
+"""
+
+PIED = """<footer>
+<div class="wrap">
+<div><a href="https://studjoow.com" class="marque"><span>Conçu et maintenu par</span>{{logo}}</a><p>Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.</p></div>
+<div><p>Données : DILA, Légifrance open data, sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0</a> ; EUR-Lex, Office des publications de l'Union européenne. Service ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne. Information juridique, pas conseil.</p><p><a href="/mentions-legales">Mentions légales</a> · <a href="/cgv">CGV</a> · <a href="/confidentialite">Confidentialité</a> · <a href="/compte">Mon compte</a></p><p>Code libre (MIT) : <a href="{{repo}}">GitHub</a> · État : <a href="/health">/health</a> · <a href="/llms.txt">llms.txt</a></p></div>
+</div>
+</footer>"""
+
+
+def gabarit(titre, contenu, description="", indexer=True):
+    e = html.escape
+    page = """<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>%s · Droit français sourcé</title>
+<meta name="description" content="%s">
+<meta name="robots" content="%s">
+<meta name="theme-color" content="#b1338a">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/static/fonts/instrument-serif-normal-400.woff2" as="font" type="font/woff2" crossorigin>
+<style>%s%s%s</style>
+</head>
+<body>
+<div class="wrap">
+<header class="bar">
+<a href="/" class="marque"><span>Droit français sourcé · un projet</span>{{logo}}</a>
+<nav class="nav" aria-label="Pages"><a href="/#tarifs">Tarifs</a><a href="/#installer">Installer</a><a href="/compte">Mon compte</a></nav>
+</header>
+<main class="doc">%s</main>
+</div>
+%s
+</body>
+</html>""" % (e(titre), e(description or titre), "index,follow" if indexer else "noindex,nofollow",
+              FONTS, CSS, CSS_DOC, contenu, PIED)
+    return page.replace("{{logo}}", LOGO_STUDJOOW).replace("{{repo}}", REPO)
+
+
+def page_ferme():
+    return gabarit("Abonnement bientôt ouvert", "<h1>Bientôt.</h1><p>L'abonnement ouvre prochainement. "
+                   "En attendant, l'essai gratuit reste disponible sur l'adresse publique <code>%s/mcp</code>.</p>"
+                   '<p><a class="btn btn-2" href="/">Retour à l\'accueil</a></p>' % SITE, indexer=False)
+
+
+def page_abonnement(erreur=None):
+    alerte = '<p class="alerte">%s</p>' % html.escape(erreur) if erreur else ""
+    return gabarit("S'abonner", """<h1>S'abonner.</h1>
+<p>Accès sans limite quotidienne au droit français et européen officiel, dans Claude, ChatGPT et tout assistant compatible MCP.</p>
+<div class="carte">
+<p class="prix">%s €<small>/ mois</small></p>
+<ul><li>Adresse personnelle, sans limite quotidienne (limite anti-abus : 60 requêtes par minute)</li>
+<li>Toutes les sources, les 11 outils, bases mises à jour chaque nuit</li>
+<li>Sans engagement : résiliable à tout moment depuis votre compte</li>
+<li>Prix net : Studjoow facture depuis Israël, sans TVA hors d'Israël</li></ul>
+%s
+<form method="post" action="/abonnement">
+<label class="coche"><input type="checkbox" name="cgv" value="1" required><span>J'accepte les <a href="/cgv" target="_blank">conditions générales de vente</a> et j'ai lu la <a href="/confidentialite" target="_blank">politique de confidentialité</a>.</span></label>
+<label class="coche"><input type="checkbox" name="execution" value="1" required><span>Je demande expressément l'accès immédiat au service, avant la fin du délai de rétractation de 14 jours. Si je me rétracte, je reste redevable du montant correspondant au service fourni jusque-là (art. L221-25 du Code de la consommation).</span></label>
+<p><button class="btn btn-1" type="submit">Payer %s € et recevoir mon adresse</button></p>
+<p class="mini">Paiement sécurisé par Stripe. Vos coordonnées bancaires ne transitent jamais par nos serveurs.</p>
+</form>
+</div>
+<p class="mini">Déjà abonné ? <a href="/compte">Gérer mon abonnement</a>. Le code reste libre : <a href="%s">héberger son propre serveur</a> est gratuit.</p>
+""" % (PRIX, alerte, PRIX, REPO), "Abonnement à %s € par mois au serveur MCP Droit français sourcé." % PRIX, indexer=False)
+
+
+def _copier(url):
+    e = html.escape(url)
+    return ('<div class="url"><code id="u">%s</code><button type="button" class="btn btn-1" '
+            "onclick=\"navigator.clipboard.writeText(document.getElementById('u').textContent).then(()=>{this.textContent='Copié'})\">"
+            "Copier</button></div>" % e)
+
+
+INSTALLER = """<h2>L'installer</h2>
+<ol><li><b>Claude</b> : Paramètres, puis Connecteurs, puis <b>Ajouter un connecteur personnalisé</b>. Coller l'adresse, sans authentification.</li>
+<li><b>ChatGPT</b> : Paramètres, puis Applications et connecteurs, <b>Créer</b> un connecteur avec cette adresse, sans authentification.</li>
+<li><b>Claude Code</b> : <code>claude mcp add --transport http droit-francais &lt;adresse&gt;</code></li></ol>
+<p>Si vous utilisiez l'adresse publique de l'essai, remplacez-la par celle-ci.</p>"""
+
+
+def page_merci(url, message=None, email=None, envoye=False):
+    if not url:
+        return gabarit("Abonnement", "<h1>Abonnement.</h1><p class=\"info\">%s</p>"
+                       '<p><a class="btn btn-1" href="/compte">Mon compte</a></p>' % html.escape(message or ""), indexer=False)
+    courriel = ("<p>Une copie vient d'être envoyée à <b>%s</b>.</p>" % html.escape(email)) if envoye and email else \
+        "<p>Copiez-la maintenant : elle ne sera plus affichée sur cette page.</p>"
+    return gabarit("Merci", """<h1>Merci.</h1>
+<p>Votre abonnement est actif. Voici votre adresse personnelle, à coller comme connecteur :</p>
+%s
+<p class="alerte"><b>Affichée une seule fois.</b> Gardez-la pour vous : elle donne accès à votre abonnement. En cas de doute, régénérez-la depuis <a href="/compte">votre compte</a>.</p>
+%s
+%s
+<p class="mini">Gérer ou résilier à tout moment : <a href="/compte">Mon compte</a>. Information juridique, pas conseil.</p>
+""" % (_copier(url), courriel, INSTALLER), indexer=False)
+
+
+def page_compte(erreur=None, info=None):
+    bloc = ('<p class="alerte">%s</p>' % html.escape(erreur)) if erreur else ('<p class="info">%s</p>' % html.escape(info) if info else "")
+    return gabarit("Mon compte", """<h1>Mon compte.</h1>
+%s
+<div class="carte"><h2>J'ai mon adresse personnelle</h2>
+<p>Collez-la pour voir l'état de l'abonnement, le gérer, le résilier ou régénérer l'adresse.</p>
+<form class="ligne" method="post" action="/compte"><input class="champ" name="adresse" placeholder="%s/mcp/..." autocomplete="off" required><button class="btn btn-1" type="submit">Ouvrir</button></form></div>
+<div class="carte"><h2>J'ai perdu mon adresse</h2>
+<p>Indiquez l'e-mail utilisé au paiement : vous recevrez un lien d'accès valable une heure.</p>
+<form class="ligne" method="post" action="/compte/lien"><input class="champ" type="email" name="email" placeholder="vous@exemple.fr" autocomplete="email" required><button class="btn btn-2" type="submit">Recevoir un lien</button></form></div>
+<p class="mini">Pas encore abonné ? <a href="/abonnement">S'abonner pour %s € / mois</a>.</p>
+""" % (bloc, SITE, PRIX), indexer=False)
+
+
+def _date_fr(s):
+    return "%s/%s/%s" % (s[8:10], s[5:7], s[:4]) if s else "inconnue"
+
+
+def page_gestion(row, url, nouvelle=False):
+    e = html.escape
+    libelles = {"actif": "Actif", "suspendu": "Suspendu (paiement en échec)", "revoque": "Terminé"}
+    fin = ("Résiliation prévue le %s" if row["resiliation_prevue"] else "Prochain prélèvement le %s") % _date_fr(row["fin_periode"])
+    if row["statut"] == "revoque":
+        fin = "Terminé le %s" % _date_fr(row["maj_le"])
+    email = row["email"] or ""
+    if "@" in email:
+        nom, dom = email.split("@", 1)
+        email = nom[:2] + "•" * max(len(nom) - 2, 1) + "@" + dom
+    cache = '<input type="hidden" name="adresse" value="%s">' % e(url)
+    adresse_html = (_copier(url) + '<p class="info">Nouvelle adresse créée : l\'ancienne ne fonctionne plus. Remplacez-la dans vos connecteurs.</p>') if nouvelle else \
+        '<p class="mini">Adresse personnelle : <code>%s/mcp/%s…</code></p>' % (SITE, e(url.rsplit("/", 1)[1][:6]))
+    return gabarit("Mon abonnement", """<h1>Mon abonnement.</h1>
+<div class="carte">
+<p><span class="statut %s">%s</span></p>
+<dl class="fiche-compte"><dt>E-mail</dt><dd>%s</dd><dt>Échéance</dt><dd>%s</dd><dt>Abonné depuis</dt><dd>%s</dd></dl>
+%s
+<form class="ligne" method="post" action="/compte/portail">%s<button class="btn btn-1" type="submit">Gérer le paiement ou résilier</button></form>
+<form class="ligne" method="post" action="/compte/regenerer" onsubmit="return confirm('L\\'adresse actuelle cessera de fonctionner. Continuer ?')">%s<button class="btn btn-2" type="submit">Régénérer mon adresse</button></form>
+<p class="mini">La gestion du paiement, des factures et la résiliation se font sur le portail sécurisé de Stripe. Une résiliation prend effet à la fin de la période payée.</p>
+</div>
+%s""" % (e(row["statut"]), libelles.get(row["statut"], row["statut"]), e(email), fin, _date_fr(row["cree_le"]),
+         adresse_html, cache, cache, INSTALLER if nouvelle else ""), indexer=False)
+
+
+def cgv():
+    mediation = ("<p>Conformément aux articles L611-1 et suivants du Code de la consommation, le consommateur peut recourir "
+                 "gratuitement au médiateur de la consommation : %s.</p>" % html.escape(MEDIATEUR)) if MEDIATEUR else ""
+    return gabarit("Conditions générales de vente", """<h1>Conditions générales de vente.</h1>
+<p class="maj">En vigueur au 22 octobre 2026</p>
+<h2>1. Objet et prestataire</h2>
+<p>Les présentes conditions régissent l'abonnement au service « Droit français sourcé », accessible sur %(site)s, fourni par %(editeur)s (ci-après « Studjoow »). Contact : <a href="mailto:%(contact)s">%(contact)s</a>.</p>
+<h2>2. Le service</h2>
+<p>Le service est un serveur MCP (Model Context Protocol) qui donne à un assistant d'intelligence artificielle compatible un accès en lecture aux données ouvertes du droit français (DILA, Légifrance) et du droit de l'Union européenne (EUR-Lex). Il fournit de l'<b>information juridique, pas un conseil</b> : les réponses formulées par l'assistant relèvent de cet assistant, la version qui fait foi est celle publiée sur Légifrance ou EUR-Lex, et la jurisprudence disponible n'est pas exhaustive. Pour un cas concret, consultez un avocat.</p>
+<p>Le logiciel est libre (licence MIT) : chacun peut l'héberger gratuitement. L'abonnement rémunère l'hébergement, les bases indexées, leur mise à jour quotidienne et la maintenance.</p>
+<h2>3. Essai gratuit</h2>
+<p>L'adresse publique %(site)s/mcp est utilisable sans inscription dans la limite de %(essai)s appels d'outils par jour et par adresse IP. Cette limite peut évoluer.</p>
+<h2>4. Prix et paiement</h2>
+<p>L'abonnement coûte <b>%(prix)s € par mois</b>, prix net : Studjoow facture depuis Israël (Tax ID 337927834), sans TVA hors d'Israël. Le paiement est mensuel, prélevé par carte via Stripe à la souscription puis à chaque date anniversaire. Toute modification de prix est annoncée par e-mail au moins 30 jours avant de s'appliquer ; l'abonné peut résilier avant.</p>
+<h2>5. Accès au service</h2>
+<p>Après le paiement, une adresse personnelle est affichée une seule fois et envoyée par e-mail. Elle est strictement personnelle : ne la partagez pas. Elle peut être régénérée à tout moment depuis la page <a href="/compte">Mon compte</a>, l'ancienne cessant alors de fonctionner. Une limite anti-abus de 60 requêtes par minute s'applique. En cas d'usage manifestement abusif (revente, partage public de l'adresse, extraction massive), Studjoow peut suspendre l'accès après en avoir informé l'abonné.</p>
+<h2>6. Durée et résiliation</h2>
+<p>L'abonnement est sans engagement et se renouvelle chaque mois. L'abonné peut le résilier à tout moment depuis <a href="/compte">Mon compte</a> (portail Stripe) ; la résiliation prend effet à la fin de la période déjà payée, sans remboursement de la période en cours, hors droit de rétractation. En cas d'échec de paiement, l'accès est suspendu jusqu'à régularisation, puis l'abonnement prend fin si le paiement n'aboutit pas.</p>
+<h2>7. Droit de rétractation</h2>
+<p>Le consommateur dispose d'un délai de 14 jours à compter de la souscription pour se rétracter, sans motif (art. L221-18 du Code de la consommation). Lors de la commande, il demande expressément que le service commence immédiatement, avant la fin de ce délai. S'il se rétracte ensuite, il verse un montant proportionné au service fourni jusqu'à la communication de sa décision (art. L221-25) ; Studjoow rembourse le reste sous 14 jours, par le même moyen de paiement.</p>
+<p>Pour se rétracter, il suffit d'envoyer une déclaration sans ambiguïté à <a href="mailto:%(contact)s">%(contact)s</a>, par exemple avec le formulaire ci-dessous.</p>
+<h3>Formulaire de rétractation</h3>
+<p>À l'attention de Studjoow, 49 Abarbanel, Tel Aviv 6608912, Israël, %(contact)s :<br>Je vous notifie par la présente ma rétractation du contrat portant sur la prestation de services ci-dessous : abonnement Droit français sourcé.<br>Commandé le : … · Nom du consommateur : … · Adresse e-mail utilisée : … · Date : …</p>
+<h2>8. Responsabilité et disponibilité</h2>
+<p>Studjoow s'efforce d'assurer un service disponible et des bases à jour, sans garantie de disponibilité continue ni d'exhaustivité. Les données proviennent de sources publiques dont Studjoow n'est pas l'éditeur. Studjoow ne répond pas des réponses rédigées par l'assistant d'intelligence artificielle utilisé, ni des décisions prises sur leur fondement. Rien dans les présentes ne limite les droits que le consommateur tient de la loi.</p>
+<h2>9. Données personnelles</h2>
+<p>Voir la <a href="/confidentialite">politique de confidentialité</a>.</p>
+<h2>10. Litiges et droit applicable</h2>
+<p>Les présentes conditions sont soumises au droit français, sans préjudice des dispositions impératives plus protectrices du pays de résidence du consommateur. En cas de difficulté, écrivez d'abord à <a href="mailto:%(contact)s">%(contact)s</a> : nous répondons sous 7 jours ouvrés.</p>
+%(mediation)s
+""" % {"site": SITE, "editeur": html.escape(EDITEUR), "contact": CONTACT, "prix": PRIX, "essai": ESSAI_PAR_JOUR,
+       "mediation": mediation}, "Conditions générales de vente de l'abonnement Droit français sourcé.")
+
+
+def mentions():
+    return gabarit("Mentions légales", """<h1>Mentions légales.</h1>
+<h2>Éditeur</h2>
+<p>%s.<br>Courriel : <a href="mailto:%s">%s</a>.<br>Directeur de la publication : John Houzi.</p>
+<h2>Hébergeur</h2>
+<p>Hetzner Online GmbH, Industriestrasse 25, 91710 Gunzenhausen, Allemagne, <a href="https://www.hetzner.com">hetzner.com</a>.</p>
+<h2>Données</h2>
+<p>Les textes et décisions proviennent des données ouvertes de la Direction de l'information légale et administrative (DILA, Légifrance), réutilisées sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0</a>, qui autorise la réutilisation commerciale sous réserve de mentionner la source et la date de mise à jour (visible sur <a href="/health">/health</a>). Le droit de l'Union provient d'EUR-Lex, © Union européenne, <a href="https://eur-lex.europa.eu">eur-lex.europa.eu</a>, réutilisé conformément à la décision 2011/833/UE. Seuls les textes publiés au Journal officiel font foi. Ce service n'est ni édité ni approuvé par la DILA, Légifrance ou l'Union européenne.</p>
+<h2>Code source</h2>
+<p>Le logiciel est libre, sous licence MIT : <a href="%s">%s</a>.</p>
+<h2>Nature du service</h2>
+<p>Information juridique, pas conseil. Pour un cas concret, consultez un avocat.</p>
+""" % (html.escape(EDITEUR), CONTACT, CONTACT, REPO, REPO), "Mentions légales du service Droit français sourcé.")
+
+
+def confidentialite():
+    return gabarit("Politique de confidentialité", """<h1>Confidentialité.</h1>
+<p class="maj">En vigueur au 22 octobre 2026</p>
+<h2>Responsable du traitement</h2>
+<p>%s. Contact : <a href="mailto:%s">%s</a>.</p>
+<h2>Ce que nous ne collectons pas</h2>
+<p>Ni cookie, ni traceur, ni outil de mesure d'audience. Les questions juridiques envoyées par votre assistant aux outils ne sont ni conservées ni associées à votre identité. Les polices sont hébergées sur ce serveur.</p>
+<h2>Essai gratuit</h2>
+<p>Pour appliquer la limite de %d requêtes par jour, nous conservons une empreinte non réversible de votre adresse IP (HMAC SHA-256 avec un sel secret) et un compteur par jour. Ces lignes sont supprimées automatiquement au bout de 2 jours. Base légale : intérêt légitime (prévenir les abus d'un service gratuit).</p>
+<h2>Abonnement</h2>
+<ul><li>Données : adresse e-mail, identifiants client et abonnement Stripe, statut et dates de l'abonnement, empreinte SHA-256 de votre adresse personnelle (jamais l'adresse en clair), horodatage de votre demande d'accès immédiat.</li>
+<li>Finalités : fournir le service, envoyer votre adresse personnelle et les messages liés au compte, prouver votre demande d'exécution immédiate.</li>
+<li>Base légale : exécution du contrat ; obligations légales pour la facturation.</li>
+<li>Durée : pendant l'abonnement, puis 12 mois après sa fin, avant suppression automatique. Les justificatifs de paiement sont conservés par Stripe selon ses obligations légales.</li></ul>
+<h2>Destinataires et sous-traitants</h2>
+<ul><li><b>Stripe</b> (paiement) : vos coordonnées bancaires sont saisies chez Stripe et ne transitent jamais par nos serveurs.</li>
+<li><b>Resend</b> (envoi des e-mails), établi aux États-Unis : transfert encadré par les clauses contractuelles types de la Commission européenne.</li>
+<li><b>Hetzner Online GmbH</b> (hébergement), Allemagne.</li></ul>
+<p>Les journaux techniques du serveur n'enregistrent ni votre adresse IP ni votre adresse personnelle ; ils tournent sur 30 Mo au plus avant d'être écrasés.</p>
+<h2>Vos droits</h2>
+<p>Accès, rectification, effacement, limitation, opposition et portabilité : écrivez à <a href="mailto:%s">%s</a>. Vous pouvez aussi saisir la CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
+""" % (html.escape(EDITEUR), CONTACT, CONTACT, ESSAI_PAR_JOUR, CONTACT, CONTACT), "Politique de confidentialité du service Droit français sourcé.")

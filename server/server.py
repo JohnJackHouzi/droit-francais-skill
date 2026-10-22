@@ -1,5 +1,8 @@
 import asyncio
+import json
+import logging
 import os
+import re
 import sys
 import time
 from collections import defaultdict, deque
@@ -158,9 +161,11 @@ async def etat_base() -> str:
 
 sys.path.insert(0, str(SCRIPTS))
 import etat as etat_bases  # noqa: E402
+import abonnement  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
 PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")
+MAX_CORPS = 1_000_000
 _pret = {"t": 0.0, "v": False}
 
 
@@ -187,24 +192,98 @@ async def texte(send, status, body, retry=None):
     await send({"type": "http.response.body", "body": body.encode()})
 
 
+async def json_brut(send, body):
+    await send({"type": "http.response.start", "status": 200, "headers": [(b"content-type", b"application/json")]})
+    await send({"type": "http.response.body", "body": body})
+
+
+async def lire_corps(receive):
+    morceaux, total = [], 0
+    while True:
+        msg = await receive()
+        if msg["type"] != "http.request":
+            return None
+        morceaux.append(msg.get("body", b""))
+        total += len(morceaux[-1])
+        if total > MAX_CORPS:
+            return None
+        if not msg.get("more_body"):
+            return b"".join(morceaux)
+
+
+def rejouer(corps, receive):
+    envoye = {"v": False}
+
+    async def recv():
+        if not envoye["v"]:
+            envoye["v"] = True
+            return {"type": "http.request", "body": corps, "more_body": False}
+        return await receive()
+    return recv
+
+
+def appels_outils(corps):
+    try:
+        msgs = json.loads(corps)
+    except ValueError:
+        return []
+    msgs = msgs if isinstance(msgs, list) else [msgs]
+    return [m.get("id") for m in msgs if isinstance(m, dict) and m.get("method") == "tools/call"]
+
+
+def message_essai():
+    return ("Quota de l'essai gratuit atteint : %d requêtes par jour sur l'adresse publique. "
+            "Pour continuer sans limite quotidienne, abonnement à %s € par mois, sans engagement : %s/abonnement . "
+            "L'essai repart demain (minuit UTC). Indiquer ce lien à l'utilisateur."
+            % (abonnement.ESSAI_PAR_JOUR, abonnement.PRIX, abonnement.SITE))
+
+
+MESSAGES_STATUT = {
+    "suspendu": "Abonnement suspendu : le dernier paiement a échoué. Mettre à jour le moyen de paiement sur %s/compte .",
+    "revoque": "Abonnement terminé : cette adresse personnelle n'est plus active. Se réabonner sur %s/abonnement .",
+}
+
+
 class Garde:
     def __init__(self, app):
         self.app = app
         self.hits = defaultdict(deque)
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http" and scope["path"] not in PUBLIC_PATHS and not scope["path"].startswith("/static/"):
-            now, q = time.monotonic(), self.hits[client_ip(scope)]
-            while q and now - q[0] > 60:
-                q.popleft()
-            if len(q) >= RATE:
-                return await texte(send, 429, "Trop de requêtes, réessayer dans quelques secondes.", b"30")
-            q.append(now)
-            if len(self.hits) > 50000:
-                for k in [k for k, v in self.hits.items() if not v or now - v[-1] > 60]:
-                    del self.hits[k]
+        if scope["type"] != "http" or scope["path"] in PUBLIC_PATHS or scope["path"].startswith("/static/"):
+            return await self.app(scope, receive, send)
+        abonne = None
+        if scope["path"].startswith("/mcp/") and scope["path"].strip("/") != "mcp":
+            abonne = abonnement.verifier_cle(scope["path"][5:].strip("/"))
+            scope["path"], scope["raw_path"] = "/mcp", b"/mcp"
+            if abonne is None:
+                return await texte(send, 404, "Adresse personnelle inconnue. Vérifier l'adresse copiée ou la régénérer sur %s/compte ." % abonnement.SITE)
+        ip = client_ip(scope)
+        now, q = time.monotonic(), self.hits["k:" + abonne["abonnement"] if abonne else ip]
+        while q and now - q[0] > 60:
+            q.popleft()
+        if len(q) >= RATE:
+            return await texte(send, 429, "Trop de requêtes, réessayer dans quelques secondes.", b"30")
+        q.append(now)
+        if len(self.hits) > 50000:
+            for k in [k for k, v in self.hits.items() if not v or now - v[-1] > 60]:
+                del self.hits[k]
+        if scope["path"] == "/mcp" or scope["path"].startswith("/mcp/"):
             if not bases_pretes():
                 return await texte(send, 503, "Bases en cours d'installation ou de reconstruction, réessayer plus tard.", b"600")
+            limiter = abonne is not None and abonne["statut"] != "actif" or abonne is None and abonnement.actif()
+            if limiter and scope["method"] == "POST":
+                corps = await lire_corps(receive)
+                if corps is None:
+                    return await texte(send, 413, "Requête trop volumineuse.")
+                ids = appels_outils(corps)
+                if ids and abonne is not None:
+                    return await json_brut(send, abonnement.json_rpc_erreur(ids, MESSAGES_STATUT[abonne["statut"]] % abonnement.SITE))
+                if ids:
+                    ok, _ = await asyncio.get_running_loop().run_in_executor(None, abonnement.consommer_essai, ip, len(ids))
+                    if not ok:
+                        return await json_brut(send, abonnement.json_rpc_erreur(ids, message_essai()))
+                receive = rejouer(corps, receive)
         await self.app(scope, receive, send)
 
 
@@ -221,6 +300,9 @@ def build_app():
 
     import page
     from starlette.responses import HTMLResponse
+
+    if abonnement.actif():
+        page.LIEN_ABONNEMENT = "/abonnement"
 
     cache = {"Cache-Control": "public, max-age=600"}
 
@@ -258,12 +340,161 @@ def build_app():
 
     app.router.routes.insert(0, Mount("/static", app=StaticCache(directory=str(Path(__file__).resolve().parent / "static")), name="static"))
     app.router.routes.insert(0, Route("/favicon.svg", lambda r: Response(page.ICONE, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})))
+    for chemin, fn in (("/cgv", page.cgv), ("/mentions-legales", page.mentions), ("/confidentialite", page.confidentialite)):
+        app.router.routes.insert(0, Route(chemin, lambda r, fn=fn: HTMLResponse(fn(), headers=cache)))
+    for route in routes_abonnement(page):
+        app.router.routes.insert(0, route)
     return Garde(app)
+
+
+def routes_abonnement(page):
+    from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
+    from starlette.routing import Route
+
+    prive = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
+    liens_envoyes = defaultdict(deque)
+
+    def vue(contenu, status=200):
+        return HTMLResponse(contenu, status_code=status, headers=prive)
+
+    def ferme():
+        return vue(page.page_ferme(), 503)
+
+    async def formulaire(request):
+        if not abonnement.actif():
+            return ferme()
+        if request.method == "GET":
+            return vue(page.page_abonnement())
+        f = await request.form()
+        if f.get("cgv") != "1" or f.get("execution") != "1":
+            return vue(page.page_abonnement("Cochez les deux cases pour continuer."), 400)
+        try:
+            session = await abonnement.creer_session(abonnement.maintenant())
+        except abonnement.ErreurStripe as exc:
+            logging.getLogger("droit").error("Checkout : %s", exc)
+            return vue(page.page_abonnement("Le paiement est momentanément indisponible, réessayez dans un instant."), 502)
+        return RedirectResponse(session["url"], status_code=303)
+
+    async def merci(request):
+        if not abonnement.actif():
+            return ferme()
+        sid = request.query_params.get("session_id", "")
+        if not re.fullmatch(r"cs_(test|live)_[A-Za-z0-9]+", sid):
+            return vue(page.page_merci(None, "Lien de confirmation invalide."), 400)
+        try:
+            s = await abonnement.stripe("GET", "/v1/checkout/sessions/" + sid, {"expand": ["subscription"]})
+        except abonnement.ErreurStripe:
+            return vue(page.page_merci(None, "Session de paiement introuvable."), 404)
+        if (s.get("metadata") or {}).get("app") != abonnement.APP or s.get("status") != "complete" or not s.get("subscription"):
+            return vue(page.page_merci(None, "Le paiement n'est pas finalisé."), 402)
+        row = abonnement.enregistrer_abonnement(s["subscription"], (s.get("customer_details") or {}).get("email"))
+        envoye = await abonnement.envoyer_cle_si_besoin(row["abonnement"])
+        if abonnement.marquer_affichee(row["abonnement"]):
+            return vue(page.page_merci(abonnement.adresse(abonnement.cle_de(row["abonnement"], row["version"])), None, row["email"], envoye or row["email_envoye"]))
+        return vue(page.page_merci(None, "Votre adresse personnelle a déjà été affichée sur cette page. Retrouvez-la dans l'e-mail de confirmation, ou régénérez-la depuis votre compte."))
+
+    def ligne_depuis(f):
+        return abonnement.verifier_cle(abonnement.extraire_cle(f.get("adresse", "")))
+
+    async def compte(request):
+        if not abonnement.actif():
+            return ferme()
+        if request.method == "GET":
+            return vue(page.page_compte())
+        row = ligne_depuis(await request.form())
+        if not row:
+            return vue(page.page_compte(erreur="Adresse personnelle inconnue."), 404)
+        return vue(page.page_gestion(row, abonnement.adresse(abonnement.cle_de(row["abonnement"], row["version"]))))
+
+    async def acces(request):
+        if not abonnement.actif():
+            return ferme()
+        aid = abonnement.lire_jeton(request.query_params.get("j", ""))
+        row = aid and abonnement.db().execute("SELECT * FROM cles WHERE abonnement=?", (aid,)).fetchone()
+        if not row:
+            return vue(page.page_compte(erreur="Lien expiré ou invalide : demandez-en un nouveau."), 400)
+        return vue(page.page_gestion(row, abonnement.adresse(abonnement.cle_de(row["abonnement"], row["version"]))))
+
+    async def portail(request):
+        if not abonnement.actif():
+            return ferme()
+        row = ligne_depuis(await request.form())
+        if not row:
+            return vue(page.page_compte(erreur="Adresse personnelle inconnue."), 404)
+        try:
+            p = await abonnement.creer_portail(row["client"])
+        except abonnement.ErreurStripe as exc:
+            logging.getLogger("droit").error("Portail : %s", exc)
+            return vue(page.page_compte(erreur="Portail de gestion momentanément indisponible."), 502)
+        return RedirectResponse(p["url"], status_code=303)
+
+    async def regenerer(request):
+        if not abonnement.actif():
+            return ferme()
+        row = ligne_depuis(await request.form())
+        if not row:
+            return vue(page.page_compte(erreur="Adresse personnelle inconnue."), 404)
+        cle = abonnement.regenerer(row["abonnement"])
+        row = abonnement.db().execute("SELECT * FROM cles WHERE abonnement=?", (row["abonnement"],)).fetchone()
+        return vue(page.page_gestion(row, abonnement.adresse(cle), nouvelle=True))
+
+    async def lien(request):
+        if not abonnement.actif():
+            return ferme()
+        email = ((await request.form()).get("email") or "").strip()[:200]
+        now, q = time.monotonic(), liens_envoyes[client_ip(request.scope)]
+        while q and now - q[0] > 3600:
+            q.popleft()
+        if "@" in email and len(q) < 5:
+            q.append(now)
+            await abonnement.envoyer_lien_acces(email)
+        return vue(page.page_compte(info="Si un abonnement correspond à cette adresse e-mail, un lien d'accès valable une heure vient d'y être envoyé."))
+
+    async def webhook(request):
+        corps = await request.body()
+        if not abonnement.signature_valide(corps, request.headers.get("stripe-signature", "")):
+            return JSONResponse({"erreur": "signature invalide"}, status_code=400)
+        ev = json.loads(corps)
+        try:
+            compte_rendu = await abonnement.traiter_evenement(ev)
+        except Exception as exc:
+            logging.getLogger("droit").exception("Webhook %s", ev.get("type"))
+            return JSONResponse({"erreur": str(exc)[:200]}, status_code=500)
+        return JSONResponse({"ok": True, "resultat": compte_rendu})
+
+    return [
+        Route("/abonnement", formulaire, methods=["GET", "POST"]),
+        Route("/merci", merci),
+        Route("/compte", compte, methods=["GET", "POST"]),
+        Route("/compte/acces", acces),
+        Route("/compte/portail", portail, methods=["POST"]),
+        Route("/compte/regenerer", regenerer, methods=["POST"]),
+        Route("/compte/lien", lien, methods=["POST"]),
+        Route("/stripe/webhook", webhook, methods=["POST"]),
+    ]
+
+
+class Masque(logging.Filter):
+    """Retire des journaux d'accès les clés (/mcp/<clé>) et les paramètres d'URL."""
+
+    def filter(self, record):
+        if isinstance(record.args, tuple) and len(record.args) >= 3 and isinstance(record.args[2], str):
+            chemin = record.args[2].split("?", 1)
+            p = re.sub(r"^/mcp/.+", "/mcp/***", chemin[0])
+            record.args = record.args[:2] + (p + ("?***" if len(chemin) > 1 else ""),) + record.args[3:]
+        return True
 
 
 app = build_app()
 
 if __name__ == "__main__":
     import uvicorn
+    from copy import deepcopy
+
+    from uvicorn.config import LOGGING_CONFIG
+
+    journaux = deepcopy(LOGGING_CONFIG)
+    journaux["filters"] = {"masque": {"()": Masque}}
+    journaux["handlers"]["access"]["filters"] = ["masque"]
     uvicorn.run(app, host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "8000")),
-                proxy_headers=False)
+                proxy_headers=False, log_config=journaux)
