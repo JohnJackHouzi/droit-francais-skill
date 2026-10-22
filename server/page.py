@@ -775,8 +775,7 @@ def page_abonnement(erreur=None, offre="particulier"):
                  + ("<li>Facture au nom de votre entreprise : raison sociale et numéro de TVA demandés au paiement</li>"
                     "<li>Support prioritaire par e-mail</li>" if pro else "")
                  + "<li>Toutes les sources, les 12 outils, bases mises à jour chaque nuit</li>"
-                 + "<li>Sans engagement : résiliable à tout moment depuis votre compte, effet à la fin de la période payée</li>"
-                 + "<li>Prix net : Studjoow facture depuis Israël, sans TVA hors d'Israël</li>")
+                 + "<li>Sans engagement : résiliable à tout moment depuis votre compte, effet à la fin de la période payée</li>")
     choix = "".join(
         '<a class="choix%s" href="/abonnement?offre=%s">%s · %s €/%s</a>' % (" actif" if k == offre else "", k, n, p, per)
         for k, (n, p, per, _) in OFFRES_PAGE.items())
@@ -791,7 +790,7 @@ def page_abonnement(erreur=None, offre="particulier"):
 <form method="post" action="/abonnement?offre=%s">
 <input type="hidden" name="offre" value="%s">
 <label class="coche"><input type="checkbox" name="cgv" value="1" required><span>J'accepte les <a href="/cgv" target="_blank">conditions générales de vente</a> et j'ai lu la <a href="/confidentialite" target="_blank">politique de confidentialité</a>.</span></label>
-<label class="coche"><input type="checkbox" name="execution" value="1" required><span>Je demande expressément l'accès immédiat au service, avant la fin du délai de rétractation de 14 jours. Si je me rétracte, je reste redevable du montant correspondant au service fourni jusque-là (art. L221-25 du Code de la consommation).</span></label>
+<label class="coche"><input type="checkbox" name="execution" value="1" required><span>Je veux utiliser le service tout de suite. Si je change d'avis dans les 14 jours, je suis remboursé, moins les jours déjà utilisés (art. L221-25 du Code de la consommation).</span></label>
 <p><button class="btn btn-1" type="submit">Payer %s € et recevoir mon adresse</button></p>
 <p class="mini">Paiement sécurisé par Stripe. Vos coordonnées bancaires ne transitent jamais par nos serveurs.</p>
 </form>
