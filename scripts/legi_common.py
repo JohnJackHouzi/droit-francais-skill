@@ -233,6 +233,26 @@ def txt(root, path):
     return v or None
 
 
+def titre_a_date(titres, jour):
+    """Intitulé d'un niveau de plan en vigueur à une date (les TITRE_TM ne sont pas triés)."""
+    valides = [t for t in titres if (t.get("debut") or "") <= jour < (t.get("fin") or "2999-01-01")]
+    if not valides:
+        valides = [t for t in titres if (t.get("fin") or "").startswith("2999")] or titres
+    return max(valides, key=lambda t: t.get("debut") or "")
+
+
+def chemin_a_date(texte, jour):
+    jour = jour or "2999-01-01"
+    parts = []
+    node = texte.find("TM")
+    while node is not None:
+        titres = [t for t in node.findall("TITRE_TM") if t.text]
+        if titres:
+            parts.append(" ".join(titre_a_date(titres, jour).text.split()))
+        node = node.find("TM")
+    return " > ".join(parts) or None
+
+
 def parse_article(root, base):
     aid = txt(root, "META/META_COMMUN/ID")
     meta = root.find("META/META_SPEC/META_ARTICLE")
@@ -267,14 +287,7 @@ def parse_article(root, base):
                 chosen = titres[-1]
             if chosen is not None:
                 texte_titre = " ".join("".join(chosen.itertext()).split()) or chosen.get("c_titre_court")
-            parts = []
-            node = t.find("TM")
-            while node is not None:
-                tm = node.find("TITRE_TM")
-                if tm is not None and tm.text:
-                    parts.append(" ".join(tm.text.split()))
-                node = node.find("TM")
-            chemin = " > ".join(parts) or None
+            chemin = chemin_a_date(t, date_debut)
         c = ctx.find("CONTENEUR")
         if c is not None:
             idcc = c.get("num")
