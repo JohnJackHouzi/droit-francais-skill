@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 COPY server/requirements.txt server/requirements.txt
 RUN pip install --no-cache-dir -r server/requirements.txt
 COPY scripts scripts
-COPY server/server.py server/page.py server/abonnement.py server/conformite.py server/
+COPY server/server.py server/page.py server/abonnement.py server/conformite.py server/analyse_ia.py server/
 COPY server/static server/static
 COPY docs/apercu-social.png server/og.png
 COPY docker/entrypoint.sh entrypoint.sh

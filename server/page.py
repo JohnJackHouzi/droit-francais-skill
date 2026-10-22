@@ -469,6 +469,7 @@ def render(etat_fn):
         "abonner_pro": _boutons_abonnement("btn btn-1", "pro", "Choisir Pro mensuel"),
         "abonner_pro_an": _boutons_abonnement("btn btn-lien", "pro-an", "Payer à l'année : %s €" % PRIX_PRO_AN),
         "prix_pro": PRIX_PRO, "prix_pro_an": PRIX_PRO_AN, "plafond_pro": nombre(PLAFOND_PRO),
+        "ia_part": os.environ.get("DROIT_IA_PAR_MOIS", "5"), "ia_pro": os.environ.get("DROIT_IA_PAR_MOIS_PRO", "100"),
     }
     page = PAGE
     for k, val in v.items():
@@ -563,7 +564,7 @@ PAGE = """<!doctype html>
 </div>
 </div>
 </div>
-<div class="usages-cta"><a class="btn btn-1" href="#installer">Essayer gratuitement</a><a class="btn btn-2" href="#tarifs">Voir les tarifs</a></div>
+<div class="usages-cta"><a class="btn btn-1" href="#installer">Essayer gratuitement</a><a class="btn btn-2" href="/conformite">Analyser mon projet</a><a class="btn btn-2" href="#tarifs">Voir les tarifs</a></div>
 </section>
 
 <section id="methode">
@@ -604,8 +605,8 @@ PAGE = """<!doctype html>
 <div class="titre"><span class="num">§ 4</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
 <div class="tarifs">
 <div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 12 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
-<div class="offre vedette"><span class="etiquette">Le plus simple</span><h3>Particulier</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
-<div class="offre pro"><span class="etiquette">Professionnels</span><h3>Pro</h3><p class="prix">{{prix_pro}} €<small>/ mois</small></p><p class="annuel">ou {{prix_pro_an}} € par an, deux mois offerts</p><ul><li>{{plafond_pro}} requêtes par jour</li><li>Facture au nom de votre entreprise</li><li>Usage professionnel autorisé</li><li>Support prioritaire par e-mail</li></ul>{{abonner_pro}}{{abonner_pro_an}}</div>
+<div class="offre vedette"><span class="etiquette">Le plus simple</span><h3>Particulier</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>{{ia_part}} analyses de conformité par mois</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
+<div class="offre pro"><span class="etiquette">Professionnels</span><h3>Pro</h3><p class="prix">{{prix_pro}} €<small>/ mois</small></p><p class="annuel">ou {{prix_pro_an}} € par an, deux mois offerts</p><ul><li>{{plafond_pro}} requêtes par jour</li><li>Facture au nom de votre entreprise</li><li>{{ia_pro}} analyses de conformité par mois</li><li>Usage professionnel autorisé</li><li>Support prioritaire par e-mail</li></ul>{{abonner_pro}}{{abonner_pro_an}}</div>
 </div>
 <div class="libre-bande"><div><b>Auto-hébergé · 0 €</b><span>Code libre sous licence MIT : votre serveur, vos bases, environ 70 Go de disque.</span></div><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
 </section>
@@ -646,9 +647,10 @@ def sitemap():
     return ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
             "<url><loc>%s/</loc><changefreq>daily</changefreq></url>"
             "<url><loc>%s/llms.txt</loc><changefreq>weekly</changefreq></url>"
+            "<url><loc>%s/conformite</loc><changefreq>monthly</changefreq></url>"
             "<url><loc>%s/cgv</loc><changefreq>monthly</changefreq></url>"
             "<url><loc>%s/mentions-legales</loc><changefreq>yearly</changefreq></url>"
-            "<url><loc>%s/confidentialite</loc><changefreq>yearly</changefreq></url></urlset>\n" % ((SITE,) * 5))
+            "<url><loc>%s/confidentialite</loc><changefreq>yearly</changefreq></url></urlset>\n" % ((SITE,) * 6))
 
 
 def llms(etat_fn):
@@ -892,6 +894,7 @@ def cgv():
 <h2>2. Le service</h2>
 <p>Le service est un serveur MCP (Model Context Protocol) qui donne à un assistant d'intelligence artificielle compatible un accès en lecture aux données ouvertes du droit français (DILA, Légifrance) et du droit de l'Union européenne (EUR-Lex). Il fournit de l'<b>information juridique, pas un conseil</b> : les réponses formulées par l'assistant relèvent de cet assistant, la version qui fait foi est celle publiée sur Légifrance ou EUR-Lex, et la jurisprudence disponible n'est pas exhaustive. Pour un cas concret, consultez un avocat.</p>
 <p>Le logiciel est libre (licence MIT) : chacun peut l'héberger gratuitement. L'abonnement rémunère l'hébergement, les bases indexées, leur mise à jour quotidienne et la maintenance.</p>
+<p>Les abonnés disposent aussi d'une analyse de conformité en ligne (5 par mois en Particulier, 100 en Pro) : une pré-analyse générée par une intelligence artificielle à partir des textes officiels, qui ne constitue ni un avis juridique ni une certification de conformité.</p>
 <h2>3. Essai gratuit</h2>
 <p>L'adresse publique %(site)s/mcp est utilisable sans inscription dans la limite de %(essai)s appels d'outils par jour et par adresse IP. Cette limite peut évoluer.</p>
 <h2>4. Prix et paiement</h2>
@@ -949,8 +952,119 @@ def confidentialite():
 <h2>Destinataires et sous-traitants</h2>
 <ul><li><b>Stripe</b> (paiement) : vos coordonnées bancaires sont saisies chez Stripe et ne transitent jamais par nos serveurs.</li>
 <li><b>Resend</b> (envoi des e-mails), établi aux États-Unis : transfert encadré par les clauses contractuelles types de la Commission européenne.</li>
-<li><b>Hetzner Online GmbH</b> (hébergement), Allemagne.</li></ul>
+<li><b>Hetzner Online GmbH</b> (hébergement), Allemagne.</li>
+<li><b>OpenAI</b> (analyse de conformité en ligne, seulement si vous la lancez), établi aux États-Unis : la description du projet lui est transmise pour produire le rapport ; elle n'est pas conservée par Studjoow, et le rapport est effacé de notre mémoire au bout d'une heure. Transfert encadré par les clauses contractuelles types.</li></ul>
 <p>Les journaux techniques du serveur n'enregistrent ni votre adresse IP ni votre adresse personnelle ; ils tournent sur 30 Mo au plus avant d'être écrasés.</p>
 <h2>Vos droits</h2>
 <p>Accès, rectification, effacement, limitation, opposition et portabilité : écrivez à <a href="mailto:%s">%s</a>. Vous pouvez aussi saisir la CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
 """ % (html.escape(EDITEUR), CONTACT, CONTACT, ESSAI_PAR_JOUR, CONTACT, CONTACT), "Politique de confidentialité du service Droit français sourcé.")
+
+
+def md_html(texte):
+    """Markdown simple (titres, listes, gras, italique) vers HTML ; tout est échappé avant mise en forme."""
+    import re
+    lignes, html_out, liste = (texte or "").splitlines(), [], None
+
+    def inline(t):
+        t = html.escape(t)
+        t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+        t = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<i>\1</i>", t)
+        t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+        return insec(t)
+
+    def fermer():
+        nonlocal liste
+        if liste:
+            html_out.append("</%s>" % liste)
+            liste = None
+
+    for l in lignes:
+        s = l.strip()
+        m = re.match(r"^(#{1,4})\s+(.*)", s)
+        if m:
+            fermer()
+            niveau = min(len(m.group(1)) + 1, 4)
+            html_out.append("<h%d>%s</h%d>" % (niveau, inline(m.group(2)), niveau))
+        elif re.match(r"^[-*•]\s+", s):
+            if liste != "ul":
+                fermer()
+                html_out.append("<ul>")
+                liste = "ul"
+            html_out.append("<li>%s</li>" % inline(re.sub(r"^[-*•]\s+", "", s)))
+        elif re.match(r"^\d+[.)]\s+", s):
+            if liste != "ol":
+                fermer()
+                html_out.append("<ol>")
+                liste = "ol"
+            html_out.append("<li>%s</li>" % inline(re.sub(r"^\d+[.)]\s+", "", s)))
+        elif not s:
+            fermer()
+        else:
+            fermer()
+            html_out.append("<p>%s</p>" % inline(s))
+    fermer()
+    return "\n".join(html_out)
+
+
+CSS_CONF = """
+[hidden]{display:none!important}
+.conf-form textarea{width:100%;min-height:190px;font:15px/1.55 var(--sans);padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);resize:vertical}
+.conf-form label.l{display:block;font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.exemple{font-size:13.5px;color:var(--muted);margin:6px 0 0}
+.rapport{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:30px 30px 24px;margin-top:22px}
+.rapport h3{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;margin:30px 0 10px}.rapport h3:first-child{margin-top:0}.rapport h4{font:600 17px var(--sans);margin:20px 0 6px}
+.rapport li{margin:6px 0}
+.rapport b{color:var(--fg)}
+.attente{display:flex;align-items:center;gap:14px;font-size:15px;color:var(--ink)}
+.roue{width:22px;height:22px;border-radius:50%;border:3px solid var(--soft);border-top-color:var(--accent);animation:tourne 1s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+.ia-mention{font-size:13px;color:var(--muted);border-top:1px dashed var(--line);padding-top:12px;margin-top:22px}
+@media print{header,footer,.ctas-rapport,.ia-actions{display:none}.rapport{border:0;padding:0}body::before{display:none}}
+"""
+
+
+def page_conformite(erreur=None, description="", ferme=False):
+    if ferme:
+        return gabarit("Analyse de conformité", "<h1>Bientôt.</h1><p>L'analyse de conformité en ligne ouvre prochainement.</p>", indexer=False)
+    alerte = '<p class="alerte">%s</p>' % html.escape(erreur) if erreur else ""
+    return gabarit("Analyse de conformité", """<style>%s</style>
+<h1>Votre projet est-il<br>dans les règles ?</h1>
+<p>Décrivez votre projet : l'analyse repère les obligations françaises et européennes qui s'appliquent (RGPD, cookies, vente en ligne, abonnements, IA, droit d'auteur, mentions légales...), lit chaque texte officiel et vous rend un rapport sourcé, avec vos priorités.</p>
+<p class="mini">Réservé aux abonnés : %d analyses par mois en Particulier, %d en Pro. Durée : une à deux minutes.</p>
+%s
+<form class="carte conf-form" method="post" action="/conformite" style="max-width:760px">
+<label class="l" for="d">Votre projet</label>
+<textarea id="d" name="description" required minlength="80" maxlength="6000" placeholder="Activité, public visé (particuliers, entreprises, enfants), données collectées, paiement, abonnement, prestataires (hébergeur, e-mails, paiement), usage de l'IA, contenus publiés par les utilisateurs...">%s</textarea>
+<p class="exemple">Exemple : « Boutique en ligne de livres personnalisés pour enfants. Le client saisit le prénom et envoie des photos, paie par Stripe ; les illustrations sont générées par IA, le livre est imprimé et livré. Newsletter et Google Analytics. Hébergé chez Vercel. »</p>
+<label class="l" for="a">Votre adresse personnelle</label>
+<input class="champ" id="a" name="adresse" placeholder="%s/mcp/..." autocomplete="off" required>
+<label class="coche"><input type="checkbox" name="avertissement" value="1" required><span>Je comprends qu'il s'agit d'une pré-analyse générée par une IA à partir des textes officiels : de l'information juridique, pas un avis d'avocat ni une certification de conformité. La description est transmise à OpenAI pour l'analyse et n'est pas conservée par Studjoow.</span></label>
+<p><button class="btn btn-1" type="submit">Lancer l'analyse</button></p>
+</form>
+<p class="mini">Pas encore abonné ? <a href="/abonnement">Particulier</a> ou <a href="/abonnement?offre=pro">Pro</a>.</p>
+""" % (CSS_CONF, int(os.environ.get("DROIT_IA_PAR_MOIS", "5")), int(os.environ.get("DROIT_IA_PAR_MOIS_PRO", "100")),
+       alerte, html.escape(description), SITE), "Pré-analyse de conformité d'un projet au droit français et européen, sourcée.", indexer=True)
+
+
+def page_rapport(job):
+    return gabarit("Rapport de conformité", """<style>%s</style>
+<h1>Rapport de conformité.</h1>
+<div id="attente" class="attente"><span class="roue"></span><span id="etape">Analyse en cours : repérage des obligations...</span></div>
+<div id="rapport" class="rapport" hidden></div>
+<p class="ia-actions" id="actions" hidden><button class="btn btn-1" type="button" onclick="print()">Imprimer ou enregistrer en PDF</button> <a class="btn btn-2" href="/conformite">Nouvelle analyse</a></p>
+<p class="ia-mention">Rapport généré par une intelligence artificielle à partir des textes officiels (Légifrance, EUR-Lex). Information juridique, pas un avis : faites valider les points importants par un avocat. Ce rapport reste disponible une heure à cette adresse.</p>
+<script>
+(function(){
+  var job=%s, n=0;
+  function suivre(){
+    fetch('/conformite/etat/'+job,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+      if(d.etat==='fini'){document.getElementById('attente').hidden=true;var r=document.getElementById('rapport');r.innerHTML=d.html;r.hidden=false;document.getElementById('actions').hidden=false;return}
+      if(d.etat==='erreur'||d.etat==='inconnu'){document.getElementById('etape').textContent=d.erreur||'Rapport introuvable.';document.querySelector('.roue').hidden=true;return}
+      document.getElementById('etape').textContent='Analyse en cours : '+(d.etape||'')+'...';
+      if(++n<200)setTimeout(suivre,3000);
+    }).catch(function(){setTimeout(suivre,5000)});
+  }
+  suivre();
+})();
+</script>
+""" % (CSS_CONF, json.dumps(job)), "Rapport de conformité", indexer=False)

@@ -181,6 +181,8 @@ Un serveur auto-hébergé est **illimité par défaut** : l'essai et l'abonnemen
 | `DROIT_PRIX_PRO` / `DROIT_PRIX_PRO_AN` / `DROIT_PLAFOND_PRO` | `19` / `190` / `3000` |
 | `DROIT_STRIPE_PRICE_PRO` / `DROIT_STRIPE_PRICE_PRO_AN` | Prix Stripe des offres Pro ; vides : créés à la volée |
 | `DROIT_RESEND_API_KEY` / `DROIT_EMAIL_FROM` | Envoi de l'adresse personnelle et des liens d'accès par Resend |
+| `DROIT_OPENAI_API_KEY` / `DROIT_IA_MODELE` | Analyse de conformité en ligne (`/conformite`, abonnés seulement) ; modèle par défaut `gpt-4.1-mini` |
+| `DROIT_IA_PAR_MOIS` / `DROIT_IA_PAR_MOIS_PRO` | Analyses par mois : `5` / `100` |
 | `DROIT_MEDIATEUR` | Coordonnées du médiateur de la consommation affichées dans les CGV |
 
 Les abonnés sont dans `/data/abonnes.sqlite` (jamais dans Git) : seule l'empreinte SHA-256 de chaque adresse personnelle y est stockée, et les compteurs d'essai (IP hachées) sont purgés au bout de 2 jours.

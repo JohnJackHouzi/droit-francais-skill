@@ -210,11 +210,25 @@ def consommer_abonne(abonnement, n=1, plafond=None):
         return True, deja + n
 
 
+def consommer_ia(abonnement, quota):
+    """Analyses de conformité en ligne : compteur mensuel (clé ia:AAAA-MM dans la table usages)."""
+    mois = "ia:" + _jour()[:7]
+    with _verrou:
+        c = db()
+        row = c.execute("SELECT n FROM usages WHERE abonnement=? AND jour=?", (abonnement, mois)).fetchone()
+        deja = row["n"] if row else 0
+        if deja >= quota:
+            return False, deja
+        c.execute("INSERT INTO usages (abonnement, jour, n) VALUES (?, ?, 1) ON CONFLICT(abonnement, jour) DO UPDATE SET n = n + 1",
+                  (abonnement, mois))
+        return True, deja + 1
+
+
 def purger_essais():
     limite = datetime.fromtimestamp(time.time() - 2 * 86400, timezone.utc).strftime("%Y-%m-%d")
     db().execute("DELETE FROM essais WHERE jour < ?", (limite,))
     mois = datetime.fromtimestamp(time.time() - 31 * 86400, timezone.utc).strftime("%Y-%m-%d")
-    db().execute("DELETE FROM usages WHERE jour < ?", (mois,))
+    db().execute("DELETE FROM usages WHERE jour < ? OR (jour LIKE 'ia:%' AND jour < ?)", (mois, "ia:" + mois[:7]))
     un_an = datetime.fromtimestamp(time.time() - 365 * 86400, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     db().execute("DELETE FROM cles WHERE statut='revoque' AND maj_le < ?", (un_an,))
     db().execute("DELETE FROM evenements WHERE recu_le < ?", (un_an,))

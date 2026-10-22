@@ -170,6 +170,7 @@ sys.path.insert(0, str(SCRIPTS))
 import etat as etat_bases  # noqa: E402
 import abonnement  # noqa: E402
 import conformite  # noqa: E402
+import analyse_ia  # noqa: E402
 
 PROXIES = int(os.environ.get("DROIT_TRUSTED_PROXIES", "1"))
 PUBLIC_PATHS = ("/health", "/ping", "/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/favicon.svg", "/og.png")
@@ -484,6 +485,45 @@ def routes_abonnement(page):
             return JSONResponse({"erreur": str(exc)[:200]}, status_code=500)
         return JSONResponse({"ok": True, "resultat": compte_rendu})
 
+    executer = {"analyser_conformite": analyser_conformite, "lire_article": lire_article, "lire_texte_ue": lire_texte_ue,
+                "rechercher_loi": rechercher_loi, "verifier_references": verifier_references}
+
+    async def conformite_page(request):
+        if not (abonnement.actif() and analyse_ia.actif()):
+            return vue(page.page_conformite(ferme=True), 503)
+        if request.method == "GET":
+            return vue(page.page_conformite())
+        f = await request.form()
+        description = (f.get("description") or "").strip()
+        if f.get("avertissement") != "1" or len(description) < 80:
+            return vue(page.page_conformite("Décrivez le projet en quelques phrases (80 caractères au moins) et cochez la case.", description), 400)
+        row = ligne_depuis(f)
+        if not row or row["statut"] != "actif":
+            return vue(page.page_conformite("Adresse personnelle inconnue ou abonnement inactif.", description), 403)
+        offre = "pro" if abonnement.offre_de(row)["pro"] else "particulier"
+        ok, n = await asyncio.get_running_loop().run_in_executor(
+            None, abonnement.consommer_ia, row["abonnement"], analyse_ia.QUOTAS[offre])
+        if not ok:
+            return vue(page.page_conformite("Quota mensuel atteint : %d analyses par mois avec votre offre." % analyse_ia.QUOTAS[offre], description), 429)
+        job = analyse_ia.lancer(description[:6000], executer)
+        return RedirectResponse("/conformite/rapport/" + job, status_code=303)
+
+    async def conformite_rapport(request):
+        if not analyse_ia.etat(request.path_params["job"]):
+            return vue(page.page_conformite("Rapport introuvable ou expiré (conservé une heure)."), 404)
+        return vue(page.page_rapport(request.path_params["job"]))
+
+    async def conformite_etat(request):
+        job = analyse_ia.etat(request.path_params["job"])
+        if not job:
+            return JSONResponse({"etat": "inconnu"}, status_code=404, headers=prive)
+        rep = {"etat": job["etat"], "etape": job.get("etape", "")}
+        if job["etat"] == "fini":
+            rep["html"] = page.md_html(job["rapport"])
+        elif job["etat"] == "erreur":
+            rep["erreur"] = job.get("erreur", "")
+        return JSONResponse(rep, headers=prive)
+
     return [
         Route("/abonnement", formulaire, methods=["GET", "POST"]),
         Route("/merci", merci),
@@ -493,6 +533,9 @@ def routes_abonnement(page):
         Route("/compte/regenerer", regenerer, methods=["POST"]),
         Route("/compte/lien", lien, methods=["POST"]),
         Route("/stripe/webhook", webhook, methods=["POST"]),
+        Route("/conformite", conformite_page, methods=["GET", "POST"]),
+        Route("/conformite/rapport/{job}", conformite_rapport),
+        Route("/conformite/etat/{job}", conformite_etat),
     ]
 
 
