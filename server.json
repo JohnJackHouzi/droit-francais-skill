@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.JohnJackHouzi/droit-francais",
+  "title": "Droit français sourcé",
+  "description": "Droit français et européen officiel (Légifrance, DILA, EUR-Lex, jurisprudence), réponses sourcées.",
+  "websiteUrl": "https://droit.studjoow.com",
+  "repository": {
+    "url": "https://github.com/JohnJackHouzi/droit-francais-skill",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://droit.studjoow.com/mcp"
+    }
+  ]
+}
