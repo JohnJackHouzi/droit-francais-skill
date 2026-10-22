@@ -224,11 +224,30 @@ async def creer_session(demande_execution):
     })
 
 
-async def creer_portail(client):
-    d = {"customer": client, "return_url": SITE + "/compte", "locale": "fr"}
+async def configuration_portail():
+    """Portail dédié « Droit by Studjoow » : le portail par défaut du compte peut appartenir à une autre marque."""
     if STRIPE_PORTAIL:
-        d["configuration"] = STRIPE_PORTAIL
-    return await stripe("POST", "/v1/billing_portal/sessions", d)
+        return STRIPE_PORTAIL
+    mode = "live" if STRIPE_CLE.startswith(("sk_live", "rk_live")) else "test"
+    row = db().execute("SELECT v FROM config WHERE k=?", ("portail_" + mode,)).fetchone()
+    if row:
+        return row["v"]
+    conf = await stripe("POST", "/v1/billing_portal/configurations", {
+        "business_profile": {"headline": "Droit by Studjoow : gérez votre abonnement",
+                             "privacy_policy_url": SITE + "/confidentialite", "terms_of_service_url": SITE + "/cgv"},
+        "features": {"subscription_cancel": {"enabled": True, "mode": "at_period_end"},
+                     "payment_method_update": {"enabled": True}, "invoice_history": {"enabled": True},
+                     "customer_update": {"enabled": True, "allowed_updates": ["email"]}},
+        "default_return_url": SITE + "/compte",
+        "metadata": {"app": APP},
+    })
+    db().execute("INSERT OR REPLACE INTO config (k, v) VALUES (?, ?)", ("portail_" + mode, conf["id"]))
+    return conf["id"]
+
+
+async def creer_portail(client):
+    return await stripe("POST", "/v1/billing_portal/sessions", {
+        "customer": client, "return_url": SITE + "/compte", "locale": "fr", "configuration": await configuration_portail()})
 
 
 def statut_de(statut_stripe):

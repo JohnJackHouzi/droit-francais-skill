@@ -174,7 +174,7 @@ Un serveur auto-hébergé est **illimité par défaut** : l'essai et l'abonnemen
 | `DROIT_STRIPE_SECRET_KEY` | Clé secrète Stripe (ou clé restreinte) |
 | `DROIT_STRIPE_WEBHOOK_SECRET` | Secret du webhook `https://<domaine>/stripe/webhook` (événements `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`) |
 | `DROIT_STRIPE_PRICE_ID` | Prix Stripe mensuel ; vide : prix créé à la volée depuis `DROIT_PRIX` |
-| `DROIT_STRIPE_PORTAL_CONFIG` | Configuration du portail client Stripe (`bpc_...`) ; vide : configuration par défaut du compte |
+| `DROIT_STRIPE_PORTAL_CONFIG` | Configuration du portail client Stripe (`bpc_...`) ; vide : le serveur crée la sienne au premier usage et la garde en base |
 | `DROIT_PRIX` / `DROIT_ESSAI_PAR_JOUR` | `2,99` / `20` |
 | `DROIT_RESEND_API_KEY` / `DROIT_EMAIL_FROM` | Envoi de l'adresse personnelle et des liens d'accès par Resend |
 | `DROIT_MEDIATEUR` | Coordonnées du médiateur de la consommation affichées dans les CGV |
