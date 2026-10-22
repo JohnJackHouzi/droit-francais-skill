@@ -524,7 +524,30 @@ def routes_abonnement(page):
             rep["erreur"] = job.get("erreur", "")
         return JSONResponse(rep, headers=prive)
 
+    def refus():
+        return JSONResponse({"erreur": "non autorisé"}, status_code=401, headers=prive)
+
+    async def admin_resume(request):
+        if not abonnement.admin_autorise(request.headers.get("authorization", "")):
+            return refus()
+        data = await asyncio.get_running_loop().run_in_executor(None, abonnement.resume_admin)
+        return JSONResponse(data, headers=prive)
+
+    async def admin_regenerer(request):
+        if not abonnement.admin_autorise(request.headers.get("authorization", "")):
+            return refus()
+        try:
+            aid = (await request.json()).get("abonnement", "")
+        except ValueError:
+            aid = ""
+        rep = await abonnement.regenerer_et_envoyer(aid) if aid else None
+        if not rep:
+            return JSONResponse({"erreur": "abonnement inconnu"}, status_code=404, headers=prive)
+        return JSONResponse(rep, headers=prive)
+
     return [
+        Route("/admin/api/resume", admin_resume),
+        Route("/admin/api/regenerer", admin_regenerer, methods=["POST"]),
         Route("/abonnement", formulaire, methods=["GET", "POST"]),
         Route("/merci", merci),
         Route("/compte", compte, methods=["GET", "POST"]),

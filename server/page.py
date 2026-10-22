@@ -640,7 +640,7 @@ PAGE = """<!doctype html>
 
 
 def robots():
-    return "User-agent: *\nAllow: /\nDisallow: /mcp\nDisallow: /compte\nDisallow: /merci\nDisallow: /abonnement\n\nSitemap: %s/sitemap.xml\n" % SITE
+    return "User-agent: *\nAllow: /\nDisallow: /mcp\nDisallow: /admin\nDisallow: /compte\nDisallow: /merci\nDisallow: /abonnement\n\nSitemap: %s/sitemap.xml\n" % SITE
 
 
 def sitemap():

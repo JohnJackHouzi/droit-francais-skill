@@ -515,3 +515,81 @@ def json_rpc_erreur(ids, message):
     rep = [{"jsonrpc": "2.0", "id": i, "result": {"content": [{"type": "text", "text": message}], "isError": True}}
            for i in ids]
     return json.dumps(rep[0] if len(rep) == 1 else rep, ensure_ascii=False).encode()
+
+
+# Back-office (lu par l'admin Studjoow avec un jeton secret).
+
+ADMIN_JETON = os.environ.get("DROIT_ADMIN_TOKEN", "")
+
+
+def admin_autorise(entete):
+    if not ADMIN_JETON or not entete.startswith("Bearer "):
+        return False
+    return hmac.compare_digest(entete[7:].strip().encode(), ADMIN_JETON.encode())
+
+
+def _mensuel(offre):
+    o = OFFRES.get(offre or "particulier", OFFRES["particulier"])
+    centimes = _centimes(o["prix"])
+    return centimes if o["intervalle"] == "month" else round(centimes / 12)
+
+
+def resume_admin():
+    c = db()
+    jour, mois = _jour(), _jour()[:7]
+    rows = c.execute("SELECT * FROM cles ORDER BY cree_le DESC").fetchall()
+    usages = {(r["abonnement"], r["jour"]): r["n"] for r in c.execute(
+        "SELECT abonnement, jour, n FROM usages WHERE jour IN (?, ?)", (jour, "ia:" + mois))}
+    abonnes = []
+    for r in rows:
+        offre = r["offre"] if "offre" in r.keys() else "particulier"
+        abonnes.append({
+            "abonnement": r["abonnement"], "client": r["client"], "email": r["email"], "offre": offre,
+            "statut": r["statut"], "statut_stripe": r["statut_stripe"], "cree_le": r["cree_le"], "maj_le": r["maj_le"],
+            "fin_periode": r["fin_periode"], "resiliation_prevue": bool(r["resiliation_prevue"]),
+            "requetes_jour": usages.get((r["abonnement"], jour), 0),
+            "analyses_mois": usages.get((r["abonnement"], "ia:" + mois), 0),
+            "plafond": OFFRES.get(offre, OFFRES["particulier"])["plafond"],
+        })
+    actifs = [a for a in abonnes if a["statut"] == "actif"]
+    par_offre = {k: sum(1 for a in actifs if a["offre"] == k) for k in OFFRES}
+    essais = c.execute("SELECT jour, count(*) AS visiteurs, sum(n >= ?) AS au_plafond, sum(n) AS requetes "
+                       "FROM essais GROUP BY jour ORDER BY jour DESC", (ESSAI_PAR_JOUR,)).fetchall()
+    evenements = c.execute("SELECT type, recu_le FROM evenements ORDER BY recu_le DESC LIMIT 15").fetchall()
+    return {
+        "genere_le": maintenant(),
+        "mode_stripe": "live" if STRIPE_CLE.startswith(("sk_live", "rk_live")) else "test",
+        "chiffres": {
+            "actifs": len(actifs), "par_offre": par_offre,
+            "suspendus": sum(1 for a in abonnes if a["statut"] == "suspendu"),
+            "termines": sum(1 for a in abonnes if a["statut"] == "revoque"),
+            "resiliations_prevues": sum(1 for a in actifs if a["resiliation_prevue"]),
+            "revenu_mensuel_centimes": sum(_mensuel(a["offre"]) for a in actifs),
+            "nouveaux_ce_mois": sum(1 for a in abonnes if (a["cree_le"] or "").startswith(mois)),
+            "termines_ce_mois": sum(1 for a in abonnes if a["statut"] == "revoque" and (a["maj_le"] or "").startswith(mois)),
+        },
+        "essais": [{"jour": e["jour"], "visiteurs": e["visiteurs"], "au_plafond": e["au_plafond"] or 0,
+                    "requetes": e["requetes"] or 0} for e in essais],
+        "evenements": [{"type": e["type"], "recu_le": e["recu_le"]} for e in evenements],
+        "abonnes": abonnes,
+        "offres": {k: {"nom": o["nom"], "prix": o["prix"], "intervalle": o["intervalle"], "plafond": o["plafond"]}
+                   for k, o in OFFRES.items()},
+    }
+
+
+async def regenerer_et_envoyer(abonnement):
+    row = db().execute("SELECT * FROM cles WHERE abonnement=?", (abonnement,)).fetchone()
+    if not row:
+        return None
+    cle = regenerer(abonnement)
+    envoye = False
+    if row["email"]:
+        url = adresse(cle)
+        envoye = await envoyer_email(row["email"], "Votre nouvelle adresse personnelle Droit by Studjoow", _gabarit(
+            "Nouvelle adresse personnelle", [
+                "Votre adresse personnelle a été renouvelée par notre équipe : l'ancienne ne fonctionne plus.",
+                "Remplacez-la dans vos connecteurs Claude ou ChatGPT par celle-ci :",
+                '<code style="background:#f2f3fb;padding:8px 10px;border-radius:6px;display:inline-block;word-break:break-all">%s</code>' % url,
+                "Une question : répondez simplement à ce message.",
+            ]), "Votre nouvelle adresse personnelle : %s\n" % url)
+    return {"regeneree": True, "email_envoye": envoye}
