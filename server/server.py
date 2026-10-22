@@ -233,9 +233,15 @@ def appels_outils(corps):
 
 def message_essai():
     return ("Quota de l'essai gratuit atteint : %d requêtes par jour sur l'adresse publique. "
-            "Pour continuer sans limite quotidienne, abonnement à %s € par mois, sans engagement : %s/abonnement . "
+            "Pour continuer, abonnement à %s € par mois (%d requêtes par jour), sans engagement : %s/abonnement . "
             "L'essai repart demain (minuit UTC). Indiquer ce lien à l'utilisateur."
-            % (abonnement.ESSAI_PAR_JOUR, abonnement.PRIX, abonnement.SITE))
+            % (abonnement.ESSAI_PAR_JOUR, abonnement.PRIX, abonnement.PLAFOND_ABONNE, abonnement.SITE))
+
+
+def message_plafond():
+    return ("Plafond quotidien de l'abonnement atteint : %d requêtes par jour et par adresse personnelle (usage "
+            "personnel, voir les CGV). Il repart demain (minuit UTC). Si l'adresse a pu être partagée, la régénérer "
+            "sur %s/compte ." % (abonnement.PLAFOND_ABONNE, abonnement.SITE))
 
 
 MESSAGES_STATUT = {
@@ -271,15 +277,20 @@ class Garde:
         if scope["path"] == "/mcp" or scope["path"].startswith("/mcp/"):
             if not bases_pretes():
                 return await texte(send, 503, "Bases en cours d'installation ou de reconstruction, réessayer plus tard.", b"600")
-            limiter = abonne is not None and abonne["statut"] != "actif" or abonne is None and abonnement.actif()
+            limiter = abonne is not None or abonnement.actif()
             if limiter and scope["method"] == "POST":
                 corps = await lire_corps(receive)
                 if corps is None:
                     return await texte(send, 413, "Requête trop volumineuse.")
                 ids = appels_outils(corps)
-                if ids and abonne is not None:
+                if ids and abonne is not None and abonne["statut"] != "actif":
                     return await json_brut(send, abonnement.json_rpc_erreur(ids, MESSAGES_STATUT[abonne["statut"]] % abonnement.SITE))
-                if ids:
+                if ids and abonne is not None:
+                    ok, _ = await asyncio.get_running_loop().run_in_executor(
+                        None, abonnement.consommer_abonne, abonne["abonnement"], len(ids))
+                    if not ok:
+                        return await json_brut(send, abonnement.json_rpc_erreur(ids, message_plafond()))
+                elif ids:
                     ok, _ = await asyncio.get_running_loop().run_in_executor(None, abonnement.consommer_essai, ip, len(ids))
                     if not ok:
                         return await json_brut(send, abonnement.json_rpc_erreur(ids, message_essai()))

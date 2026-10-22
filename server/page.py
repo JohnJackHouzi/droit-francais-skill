@@ -7,6 +7,7 @@ SITE = os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("
 REPO = "https://github.com/JohnJackHouzi/droit-francais-skill"
 PRIX = os.environ.get("DROIT_PRIX", "2,99")
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
+PLAFOND = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
 LIEN_ABONNEMENT = os.environ.get("DROIT_LIEN_ABONNEMENT", "").strip()
 STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#org", "name": "Studjoow", "url": "https://studjoow.com",
           "description": "Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.",
@@ -31,8 +32,8 @@ FAQ = [
      "Assez pour essayer sur de vraies questions avant de vous abonner." % ESSAI_PAR_JOUR),
     ("Comment fonctionne l'abonnement ?",
      "%s € par mois, sans engagement. Après le paiement, vous recevez une adresse personnelle à coller comme "
-     "connecteur dans Claude ou ChatGPT, sans limite quotidienne. Résiliable à tout moment depuis la page Mon compte, "
-     "avec effet à la fin du mois payé." % PRIX),
+     "connecteur dans Claude ou ChatGPT, avec %d requêtes par jour : bien au-delà d'un usage intensif. Résiliable à tout "
+     "moment depuis la page Mon compte, avec effet à la fin du mois payé." % (PRIX, PLAFOND)),
     ("Que se passe-t-il quand l'essai gratuit est épuisé ?",
      "L'assistant reçoit un message clair indiquant que le quota du jour est atteint, avec le lien d'abonnement. "
      "L'essai repart le lendemain à minuit (UTC)."),
@@ -139,7 +140,7 @@ def json_ld():
              {"@type": "Offer", "name": "Abonnement", "price": prix, "priceCurrency": "EUR",
               "priceSpecification": {"@type": "UnitPriceSpecification", "price": prix, "priceCurrency": "EUR",
                                      "billingDuration": "P1M", "unitText": "MONTH"},
-              "description": "Accès illimité par adresse personnelle, sans engagement"},
+              "description": "%d requêtes par jour par adresse personnelle, sans engagement" % PLAFOND},
          ],
          "author": {"@id": "https://studjoow.com/#org"}, "publisher": {"@id": "https://studjoow.com/#org"},
          "description": DESCRIPTION, "featureList": [o[1] for o in OUTILS]},
@@ -363,7 +364,7 @@ def render(etat_fn):
         "pied": PIED,
         "titre": e(TITRE), "desc": e(DESCRIPTION), "site": SITE, "ld": json_ld().replace("</", "<\\/"),
         "fonts": FONTS, "css": CSS, "etat": etat, "chiffres": chiffres, "sources": sources, "outils": outils,
-        "faq": faq, "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
+        "faq": faq, "plafond": nombre(PLAFOND), "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
         "abonner": _boutons_abonnement(), "abonner2": _boutons_abonnement("btn btn-1"),
     }
     page = PAGE
@@ -476,8 +477,8 @@ PAGE = """<!doctype html>
 <div class="titre"><span class="num">§ 3</span><div><h2>Le code est libre.<br>L'hébergement, clé en main.</h2></div><p>Le logiciel est sous licence MIT : chacun peut l'héberger gratuitement. L'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour quotidienne.</p></div>
 <div class="tarifs">
 <div class="offre"><h3>Essai</h3><p class="prix">0 €</p><ul><li>{{essai}} requêtes par jour</li><li>Sans inscription</li><li>Toutes les sources et les 11 outils</li></ul><a class="btn btn-2" href="#installer">Ajouter l'adresse publique</a></div>
-<div class="offre vedette"><span class="etiquette">Recommandé</span><h3>Abonnement</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>Requêtes sans limite quotidienne</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
-<div class="offre libre"><h3>Auto-hébergé</h3><p class="prix">0 €</p><ul><li>Code libre, licence MIT</li><li>Votre serveur, vos bases</li><li>Environ 40 Go de disque</li></ul><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
+<div class="offre vedette"><span class="etiquette">Recommandé</span><h3>Abonnement</h3><p class="prix">{{prix}} €<small>/ mois</small></p><ul><li>{{plafond}} requêtes par jour</li><li>Adresse personnelle pour Claude et ChatGPT</li><li>Bases mises à jour chaque nuit</li><li>Sans engagement, résiliable à tout moment</li></ul>{{abonner2}}</div>
+<div class="offre libre"><h3>Auto-hébergé</h3><p class="prix">0 €</p><ul><li>Code libre, licence MIT</li><li>Votre serveur, vos bases</li><li>Environ 70 Go de disque</li></ul><a class="btn btn-2" href="{{repo}}">Voir sur GitHub</a></div>
 </div>
 </section>
 
@@ -531,7 +532,7 @@ def llms(etat_fn):
         "",
         "Adresse publique du serveur MCP (Streamable HTTP, sans authentification) : %s/mcp" % SITE,
         "Essai gratuit : %d appels d'outils par jour et par IP sur l'adresse publique." % ESSAI_PAR_JOUR,
-        "Abonnement : %s € par mois, sans engagement, adresse personnelle %s/mcp/<clé> sans limite quotidienne : %s/abonnement" % (PRIX, SITE, SITE),
+        "Abonnement : %s € par mois, sans engagement, adresse personnelle %s/mcp/<clé>, %d requêtes par jour : %s/abonnement" % (PRIX, SITE, PLAFOND, SITE),
         "Auto-hébergement : gratuit, code sous licence MIT (%s)." % REPO,
         "Mise à jour des bases : %s" % (r["maj"] or "voir %s/health" % SITE),
         "",
@@ -635,10 +636,10 @@ def page_ferme():
 def page_abonnement(erreur=None):
     alerte = '<p class="alerte">%s</p>' % html.escape(erreur) if erreur else ""
     return gabarit("S'abonner", """<h1>S'abonner.</h1>
-<p>Accès sans limite quotidienne au droit français et européen officiel, dans Claude, ChatGPT et tout assistant compatible MCP.</p>
+<p>Accès personnel au droit français et européen officiel, dans Claude, ChatGPT et tout assistant compatible MCP.</p>
 <div class="carte">
 <p class="prix">%s €<small>/ mois</small></p>
-<ul><li>Adresse personnelle, sans limite quotidienne (limite anti-abus : 60 requêtes par minute)</li>
+<ul><li>Adresse personnelle : %s requêtes par jour, soit bien plus qu'un usage intensif (et 60 par minute au plus)</li>
 <li>Toutes les sources, les 11 outils, bases mises à jour chaque nuit</li>
 <li>Sans engagement : résiliable à tout moment depuis votre compte</li>
 <li>Prix net : Studjoow facture depuis Israël, sans TVA hors d'Israël</li></ul>
@@ -651,7 +652,7 @@ def page_abonnement(erreur=None):
 </form>
 </div>
 <p class="mini">Déjà abonné ? <a href="/compte">Gérer mon abonnement</a>. Le code reste libre : <a href="%s">héberger son propre serveur</a> est gratuit.</p>
-""" % (PRIX, alerte, PRIX, REPO), "Abonnement à %s € par mois au serveur MCP Droit français sourcé." % PRIX, indexer=False)
+""" % (PRIX, nombre(PLAFOND), alerte, PRIX, REPO), "Abonnement à %s € par mois au serveur MCP Droit français sourcé." % PRIX, indexer=False)
 
 
 def _copier(url):
@@ -743,7 +744,7 @@ def cgv():
 <h2>4. Prix et paiement</h2>
 <p>L'abonnement coûte <b>%(prix)s € par mois</b>, prix net : Studjoow facture depuis Israël (Tax ID 337927834), sans TVA hors d'Israël. Le paiement est mensuel, prélevé par carte via Stripe à la souscription puis à chaque date anniversaire. Toute modification de prix est annoncée par e-mail au moins 30 jours avant de s'appliquer ; l'abonné peut résilier avant.</p>
 <h2>5. Accès au service</h2>
-<p>Après le paiement, une adresse personnelle est affichée une seule fois et envoyée par e-mail. Elle est strictement personnelle : ne la partagez pas. Elle peut être régénérée à tout moment depuis la page <a href="/compte">Mon compte</a>, l'ancienne cessant alors de fonctionner. Une limite anti-abus de 60 requêtes par minute s'applique. En cas d'usage manifestement abusif (revente, partage public de l'adresse, extraction massive), Studjoow peut suspendre l'accès après en avoir informé l'abonné.</p>
+<p>Après le paiement, une adresse personnelle est affichée une seule fois et envoyée par e-mail. Elle est strictement personnelle : ne la partagez pas. Elle peut être régénérée à tout moment depuis la page <a href="/compte">Mon compte</a>, l'ancienne cessant alors de fonctionner. L'abonnement est à usage personnel et comprend jusqu'à %(plafond)s appels d'outils par jour et par adresse personnelle, ainsi qu'au plus 60 requêtes par minute ; au-delà, l'accès reprend le lendemain. En cas d'usage manifestement abusif (revente, partage public de l'adresse, extraction massive), Studjoow peut suspendre l'accès après en avoir informé l'abonné.</p>
 <h2>6. Durée et résiliation</h2>
 <p>L'abonnement est sans engagement et se renouvelle chaque mois. L'abonné peut le résilier à tout moment depuis <a href="/compte">Mon compte</a> (portail Stripe) ; la résiliation prend effet à la fin de la période déjà payée, sans remboursement de la période en cours, hors droit de rétractation. En cas d'échec de paiement, l'accès est suspendu jusqu'à régularisation, puis l'abonnement prend fin si le paiement n'aboutit pas.</p>
 <h2>7. Droit de rétractation</h2>
@@ -759,7 +760,7 @@ def cgv():
 <p>Les présentes conditions sont soumises au droit français, sans préjudice des dispositions impératives plus protectrices du pays de résidence du consommateur. En cas de difficulté, écrivez d'abord à <a href="mailto:%(contact)s">%(contact)s</a> : nous répondons sous 7 jours ouvrés.</p>
 %(mediation)s
 """ % {"site": SITE, "editeur": html.escape(EDITEUR), "contact": CONTACT, "prix": PRIX, "essai": ESSAI_PAR_JOUR,
-       "mediation": mediation}, "Conditions générales de vente de l'abonnement Droit français sourcé.")
+       "mediation": mediation, "plafond": nombre(PLAFOND)}, "Conditions générales de vente de l'abonnement Droit français sourcé.")
 
 
 def mentions():

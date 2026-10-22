@@ -109,7 +109,7 @@ Les bases françaises sont reconstruites à partir des dumps officiels de la DIL
 | Offre | Prix | Ce qui est inclus |
 |---|---|---|
 | Essai | 0 € | 20 appels d'outils par jour et par IP sur l'adresse publique, sans inscription |
-| Abonnement | 2,99 € / mois, sans engagement | Adresse personnelle sans limite quotidienne, résiliable à tout moment : [s'abonner](https://droit.studjoow.com/abonnement) |
+| Abonnement | 2,99 € / mois, sans engagement | Adresse personnelle, 500 appels d'outils par jour (usage personnel), résiliable à tout moment : [s'abonner](https://droit.studjoow.com/abonnement) |
 | Auto-hébergé | 0 € | Code libre (MIT), vos serveurs et vos bases : [voir plus bas](#héberger-son-propre-serveur) |
 
 Le code est libre, l'hébergement est clé en main : l'abonnement paie le serveur, les 33 Go de bases indexées et leur mise à jour chaque nuit. Conditions : [CGV](https://droit.studjoow.com/cgv), [confidentialité](https://droit.studjoow.com/confidentialite), [mentions légales](https://droit.studjoow.com/mentions-legales).
@@ -175,7 +175,7 @@ Un serveur auto-hébergé est **illimité par défaut** : l'essai et l'abonnemen
 | `DROIT_STRIPE_WEBHOOK_SECRET` | Secret du webhook `https://<domaine>/stripe/webhook` (événements `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`) |
 | `DROIT_STRIPE_PRICE_ID` | Prix Stripe mensuel ; vide : prix créé à la volée depuis `DROIT_PRIX` |
 | `DROIT_STRIPE_PORTAL_CONFIG` | Configuration du portail client Stripe (`bpc_...`) ; vide : le serveur crée la sienne au premier usage et la garde en base |
-| `DROIT_PRIX` / `DROIT_ESSAI_PAR_JOUR` | `2,99` / `20` |
+| `DROIT_PRIX` / `DROIT_ESSAI_PAR_JOUR` / `DROIT_PLAFOND_ABONNE` | `2,99` / `20` / `500` (appels d'outils par jour et par abonné) |
 | `DROIT_RESEND_API_KEY` / `DROIT_EMAIL_FROM` | Envoi de l'adresse personnelle et des liens d'accès par Resend |
 | `DROIT_MEDIATEUR` | Coordonnées du médiateur de la consommation affichées dans les CGV |
 

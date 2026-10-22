@@ -19,6 +19,7 @@ SITE = os.environ.get("DROIT_PUBLIC_URL", "https://droit.studjoow.com").rstrip("
 PRIX = os.environ.get("DROIT_PRIX", "2,99")
 CENTIMES = int(round(float(PRIX.replace(",", ".")) * 100))
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
+PLAFOND_ABONNE = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
 SECRET = os.environ.get("DROIT_SECRET", "").encode()
 STRIPE_CLE = os.environ.get("DROIT_STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK = os.environ.get("DROIT_STRIPE_WEBHOOK_SECRET", "")
@@ -83,6 +84,12 @@ CREATE TABLE IF NOT EXISTS essais (
   jour TEXT NOT NULL,
   n INTEGER NOT NULL,
   PRIMARY KEY (ip, jour)
+);
+CREATE TABLE IF NOT EXISTS usages (
+  abonnement TEXT NOT NULL,
+  jour TEXT NOT NULL,
+  n INTEGER NOT NULL,
+  PRIMARY KEY (abonnement, jour)
 );
 CREATE TABLE IF NOT EXISTS evenements (
   id TEXT PRIMARY KEY,
@@ -162,9 +169,25 @@ def consommer_essai(ip, n=1):
         return True, deja + n
 
 
+def consommer_abonne(abonnement, n=1):
+    """Plafond quotidien par abonné : repère une adresse personnelle partagée."""
+    jour = _jour()
+    with _verrou:
+        c = db()
+        row = c.execute("SELECT n FROM usages WHERE abonnement=? AND jour=?", (abonnement, jour)).fetchone()
+        deja = row["n"] if row else 0
+        if deja + n > PLAFOND_ABONNE:
+            return False, deja
+        c.execute("INSERT INTO usages (abonnement, jour, n) VALUES (?, ?, ?) ON CONFLICT(abonnement, jour) DO UPDATE SET n = n + ?",
+                  (abonnement, jour, n, n))
+        return True, deja + n
+
+
 def purger_essais():
     limite = datetime.fromtimestamp(time.time() - 2 * 86400, timezone.utc).strftime("%Y-%m-%d")
     db().execute("DELETE FROM essais WHERE jour < ?", (limite,))
+    mois = datetime.fromtimestamp(time.time() - 31 * 86400, timezone.utc).strftime("%Y-%m-%d")
+    db().execute("DELETE FROM usages WHERE jour < ?", (mois,))
     un_an = datetime.fromtimestamp(time.time() - 365 * 86400, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     db().execute("DELETE FROM cles WHERE statut='revoque' AND maj_le < ?", (un_an,))
     db().execute("DELETE FROM evenements WHERE recu_le < ?", (un_an,))
