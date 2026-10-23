@@ -17,6 +17,7 @@ EU = os.path.join(DATA_DIR, "eu.sqlite")
 ARTICLE_URL = "https://www.legifrance.gouv.fr/codes/article_lc/"
 JURI_URL = {"CETATEXT": "https://www.legifrance.gouv.fr/ceta/id/", "CONSTEXT": "https://www.legifrance.gouv.fr/cons/id/", "CNILTEXT": "https://www.legifrance.gouv.fr/cnil/id/"}
 EN_VIGUEUR = ("VIGUEUR", "VIGUEUR_DIFF", "VIGUEUR_ETEN", "VIGUEUR_NON_ETEN")
+NUM_FREQUENT = 500
 
 
 def connect(path):
@@ -56,11 +57,20 @@ def find_article(con, ref, jour):
         return []
     code, num = m.group(1).strip(" ,"), norm_num(m.group(2))
     code = re.sub(r",?\s*art(icle)?\.?$", "", code, flags=re.I).strip()
-    rows = con.execute(
-        "select * from articles indexed by ix_art_num where num_norm=? and base='legi' and texte_titre like ? "
-        "and date_debut<=? and (date_fin is null or date_fin>?) order by date_debut desc",
-        (num, f"{code}%", jour, jour)).fetchall()
-    return rows
+    filtre = ("and base='legi' and texte_titre like ? and date_debut<=? and (date_fin is null or date_fin>?) "
+              "order by date_debut desc")
+    if con.execute("select count(*) from articles where num_norm=?", (num,)).fetchone()[0] <= NUM_FREQUENT:
+        return con.execute("select * from articles indexed by ix_art_num where num_norm=? " + filtre,
+                           (num, f"{code}%", jour, jour)).fetchall()
+    # Numéro très fréquent (« Code civil 9 ») : passer par les textes et l'index (texte_id, num_norm),
+    # sinon des dizaines de milliers d'articles sont lus et le serveur dépasse son délai.
+    ids = [r[0] for r in con.execute(
+        "select distinct coalesce(cid, id) from textes where base='legi' and titre like ?", (f"{code}%",))]
+    if not ids:
+        return []
+    return con.execute(
+        "select * from articles indexed by ix_art_texte_num where texte_id in (%s) and num_norm=? %s"
+        % (",".join("?" * len(ids)), filtre), (*ids, num, f"{code}%", jour, jour)).fetchall()
 
 
 def find_decision(con, ref):
