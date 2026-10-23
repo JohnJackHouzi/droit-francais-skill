@@ -1,4 +1,5 @@
 import argparse
+import functools
 import os
 import re
 import sqlite3
@@ -49,6 +50,22 @@ def article_line(r, jour):
             f"{r['etat']}) [{r['id']}] {lien}").strip()
 
 
+@functools.lru_cache(maxsize=64)
+def _textes_legi(con, code):
+    # Les codes d'abord (une centaine de lignes indexées) ; sinon les 150 000 textes legi, par l'index (base, nature).
+    for nature in ("and nature='CODE'", ""):
+        ids = [r[0] for r in con.execute(
+            "select distinct coalesce(cid, id) from textes indexed by ix_txt_nature where base='legi' %s and titre like ?"
+            % nature, (f"{code}%",))]
+        if ids:
+            return tuple(ids)
+    return ()
+
+
+def textes_legi(con, code):
+    return list(_textes_legi(con, code))
+
+
 def find_article(con, ref, jour):
     if re.fullmatch(r"(LEGIARTI|JORFARTI|KALIARTI)\d+", ref):
         return con.execute("select * from articles where id=?", (ref,)).fetchall()
@@ -64,8 +81,7 @@ def find_article(con, ref, jour):
                            (num, f"{code}%", jour, jour)).fetchall()
     # Numéro très fréquent (« Code civil 9 ») : passer par les textes et l'index (texte_id, num_norm),
     # sinon des dizaines de milliers d'articles sont lus et le serveur dépasse son délai.
-    ids = [r[0] for r in con.execute(
-        "select distinct coalesce(cid, id) from textes where base='legi' and titre like ?", (f"{code}%",))]
+    ids = textes_legi(con, code)
     if not ids:
         return []
     return con.execute(
