@@ -25,7 +25,7 @@ STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#organization", 
                       "url": "https://studjoow.com/studio"}}
 AUTRES_PROJETS = [
     ("Mishpat", "https://mishpat.studjoow.com",
-     "Le même principe pour le droit israélien : plus de 6 000 lois et l'historique de leurs publications officielles. Gratuit."),
+     "Le même principe pour le droit israélien : plus de 6 000 textes (lois, ordonnances, règlements) et l'historique de leurs publications officielles. Gratuit."),
     ("Vérifie mon projet", "https://github.com/JohnJackHouzi/studjoow-conformite",
      "Un plugin Claude Code qui passe un projet web au crible du droit français et européen, en s'appuyant sur ce serveur."),
     ("Le Lab Studjoow", "https://studjoow.com/lab",
