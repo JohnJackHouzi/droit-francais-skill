@@ -17,9 +17,20 @@ OFFRES_PAGE = {
     "pro-an": ("Pro annuel", PRIX_PRO_AN, "an", PLAFOND_PRO),
 }
 LIEN_ABONNEMENT = os.environ.get("DROIT_LIEN_ABONNEMENT", "").strip()
-STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#org", "name": "Studjoow", "url": "https://studjoow.com",
+STUDIO = {"@type": "Organization", "@id": "https://studjoow.com/#organization", "name": "Studjoow", "url": "https://studjoow.com",
           "description": "Studio créatif et tech : sites sur mesure, branding, IA, SEO et GEO.",
-          "logo": "https://studjoow.com/brand/logo-long-blanc.svg"}
+          "logo": "https://studjoow.com/brand/logo-long-blanc.svg", "email": "hello@studjoow.com",
+          "foundingDate": "2007",
+          "founder": {"@type": "Person", "@id": "https://studjoow.com/#johnhouzi", "name": "John Houzi",
+                      "url": "https://studjoow.com/studio"}}
+AUTRES_PROJETS = [
+    ("Mishpat", "https://mishpat.studjoow.com",
+     "Le même principe pour le droit israélien : plus de 6 000 textes (lois, ordonnances, règlements) et l'historique de leurs publications officielles. Gratuit."),
+    ("Vérifie mon projet", "https://github.com/JohnJackHouzi/studjoow-conformite",
+     "Un plugin Claude Code qui passe un projet web au crible du droit français et européen, en s'appuyant sur ce serveur."),
+    ("Le Lab Studjoow", "https://studjoow.com/lab",
+     "Les autres outils du studio en accès libre : audit SEO et GEO Sk:vr, rayon X de marque, agent SEO Next.js."),
+]
 TITRE = "Droit français sourcé : le droit officiel dans Claude et ChatGPT"
 DESCRIPTION = ("Branchez le droit français et européen officiel sur Claude ou ChatGPT : codes, lois, Journal officiel, "
                "conventions collectives, jurisprudence et EUR-Lex. Chaque réponse sourcée et vérifiée. "
@@ -170,7 +181,7 @@ def json_ld():
     graph = [
         STUDIO,
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "Droit français sourcé",
-         "inLanguage": "fr-FR", "description": DESCRIPTION, "publisher": {"@id": "https://studjoow.com/#org"}},
+         "inLanguage": "fr-FR", "description": DESCRIPTION, "publisher": {"@id": "https://studjoow.com/#organization"}},
         {"@type": "SoftwareApplication", "@id": SITE + "/#app", "name": "Droit français sourcé (serveur MCP)",
          "applicationCategory": "BusinessApplication", "applicationSubCategory": "Recherche juridique",
          "operatingSystem": "Tous (service web)", "image": SITE + "/og.png",
@@ -192,7 +203,7 @@ def json_ld():
                                      "priceCurrency": "EUR", "billingDuration": "P1Y", "unitText": "ANN"},
               "description": "Offre Pro payée à l'année, deux mois offerts"},
          ],
-         "author": {"@id": "https://studjoow.com/#org"}, "publisher": {"@id": "https://studjoow.com/#org"},
+         "author": {"@id": "https://studjoow.com/#organization"}, "publisher": {"@id": "https://studjoow.com/#organization"},
          "description": DESCRIPTION, "featureList": [o[1] for o in OUTILS]},
         {"@type": "Dataset", "name": "Droit français et européen (données ouvertes DILA et EUR-Lex)",
          "description": "Bases LEGI, JORF, KALI, JADE, CASS, CAPP, INCA, CONSTIT, CNIL et EUR-Lex interrogeables en plein texte.",
@@ -412,6 +423,17 @@ details[open] summary::after{transform:rotate(45deg)}
 details p{margin:10px 0 0;color:var(--ink);max-width:760px}
 .note{margin:28px 0 0 164px;border-left:3px solid var(--accent);padding:14px 18px;background:var(--paper);border-radius:0 12px 12px 0;font-size:15px;color:var(--ink)}
 
+/* studjoow */
+.studio{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:0;margin-left:164px;border-top:1px solid var(--fg)}
+.studio>div{padding:22px 28px 0 0}
+.studio b{display:block;font:500 12px var(--mono);color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.studio p{margin:0 0 14px;color:var(--ink);font-size:15px}
+.studio-projets a{display:block;font:600 16px var(--sans);color:var(--fg);text-decoration:none;margin-bottom:2px}
+.studio-projets a:hover{color:var(--accent)}
+.studio-contact{display:flex;flex-direction:column;align-items:flex-start}
+.studio-contact .btn-lien{padding-top:12px}
+@media (max-width:900px){.studio{grid-template-columns:1fr;margin-left:0}.studio>div{padding-right:0}}
+
 footer{margin-top:110px;border-top:1px solid var(--fg);padding:34px 0 60px;font-size:13.5px;color:var(--muted)}
 footer .wrap{display:grid;grid-template-columns:1.2fr 1fr;gap:30px}
 footer a{color:var(--ink)}
@@ -462,11 +484,12 @@ def render(etat_fn):
         '<article class="usage"><p class="qui">%s</p><h3>%s</h3><ul class="bulles">%s</ul><p class="gain">%s</p></article>'
         % (e(qui), insec(e(titre)), "".join("<li>%s</li>" % insec(e(q)) for q in qs), insec(e(gain))) for qui, titre, qs, gain in USAGES)
     faq = "".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in FAQ)
+    projets = "".join('<p><a href="%s">%s</a>%s</p>' % (e(u), e(n), e(d)) for n, u, d in AUTRES_PROJETS)
     v = {
         "pied": PIED,
         "titre": e(TITRE), "desc": e(DESCRIPTION), "site": SITE, "ld": json_ld().replace("</", "<\\/"),
         "fonts": FONTS, "css": CSS, "etat": etat, "chiffres": chiffres, "sources": sources, "outils": outils,
-        "faq": faq, "usages": usages, "plafond": nombre(PLAFOND), "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
+        "faq": faq, "projets": projets, "usages": usages, "plafond": nombre(PLAFOND), "repo": REPO, "logo": LOGO_STUDJOOW, "prix": PRIX, "essai": str(ESSAI_PAR_JOUR),
         "abonner": _boutons_abonnement(), "abonner2": _boutons_abonnement("btn btn-1"),
         "abonner_pro": _boutons_abonnement("btn btn-1", "pro", "Choisir Pro mensuel"),
         "abonner_pro_an": _boutons_abonnement("btn btn-lien", "pro-an", "Payer à l'année : %s €" % PRIX_PRO_AN),
@@ -515,7 +538,7 @@ PAGE = """<!doctype html>
 <div class="wrap">
 <header class="bar">
 <a href="https://studjoow.com" class="marque"><span>Un projet</span>{{logo}}</a>
-<nav class="nav" aria-label="Sections"><a href="#usages">Usages</a><a href="#methode">Méthode</a><a href="#sources">Sources</a><a href="#tarifs">Tarifs</a><a href="#faq">FAQ</a></nav>
+<nav class="nav" aria-label="Sections"><a href="#usages">Usages</a><a href="#methode">Méthode</a><a href="#sources">Sources</a><a href="#tarifs">Tarifs</a><a href="#studjoow">Studjoow</a><a href="#faq">FAQ</a></nav>
 <span class="etat">{{etat}}</span>
 </header>
 
@@ -631,8 +654,17 @@ PAGE = """<!doctype html>
 <div class="outils">{{outils}}</div>
 </section>
 
+<section id="studjoow">
+<div class="titre"><span class="num">§ 7</span><div><h2>Derrière l'outil,<br>un studio.</h2></div><p>Droit by Studjoow est conçu, hébergé et maintenu par Studjoow, le studio créatif et tech de John Houzi. Un studio à une personne, en activité depuis 2007 : sites sur mesure, identité visuelle, intégrations IA, SEO et GEO. Un seul interlocuteur, du cadrage à la mise en ligne.</p></div>
+<div class="studio">
+<div class="studio-pourquoi"><b>Pourquoi cet outil</b><p>Les assistants citent parfois des articles qui n'existent pas. Studjoow a construit ce serveur pour que chaque réponse parte du texte officiel et que chaque référence soit contrôlée, puis l'a ouvert à tous, code compris.</p></div>
+<div class="studio-projets"><b>Les autres projets</b>{{projets}}</div>
+<div class="studio-contact"><b>Travailler avec Studjoow</b><p>Un site, une marque ou un outil d'IA branché sur vos propres données ?</p><a class="btn btn-1" href="https://studjoow.com">Découvrir Studjoow</a><a class="btn btn-lien" href="mailto:hello@studjoow.com">hello@studjoow.com</a></div>
+</div>
+</section>
+
 <section id="faq">
-<div class="titre"><span class="num">§ 7</span><div><h2>Questions fréquentes.</h2></div></div>
+<div class="titre"><span class="num">§ 8</span><div><h2>Questions fréquentes.</h2></div></div>
 <div class="faq">{{faq}}</div>
 <p class="note"><b>Information juridique, pas conseil.</b> La version qui fait foi est celle de <a href="https://www.legifrance.gouv.fr">Légifrance</a> ou d'<a href="https://eur-lex.europa.eu">EUR-Lex</a>. Jurisprudence non exhaustive : seules les décisions diffusées en open data y figurent (cours d'appel jusqu'à fin 2023). Pour un cas concret, consultez un avocat.</p>
 </section>
@@ -693,6 +725,11 @@ def llms(etat_fn):
         "- État des bases : %s/health" % SITE,
         "- Conditions générales de vente : %s/cgv" % SITE,
         "- Conçu et maintenu par Studjoow, studio créatif et tech : https://studjoow.com",
+        "",
+        "## Qui est derrière",
+        "Studjoow, le studio créatif et tech de John Houzi, en activité depuis 2007 : sites sur mesure, identité visuelle, "
+        "intégrations IA, SEO et GEO. Contact : hello@studjoow.com.",
+    ] + ["- %s (%s) : %s" % (n, u, d) for n, u, d in AUTRES_PROJETS] + [
         "",
     ]
     return "\n".join(lignes)
