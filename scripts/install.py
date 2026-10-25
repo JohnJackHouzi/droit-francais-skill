@@ -170,7 +170,7 @@ def fts_present(db):
 
 
 def mettre_a_jour():
-    for script in ("update_legi.py", "update_juri.py"):
+    for script in ("update_legi.py", "update_juri.py", "update_eu.py"):
         try:
             run(script)
         except subprocess.CalledProcessError as exc:
