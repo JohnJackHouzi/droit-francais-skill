@@ -94,6 +94,7 @@ Les bases françaises sont reconstruites à partir des dumps officiels de la DIL
 | `lire_texte_ue` | Acte de l'UE article par article (CELEX, « RGPD », « règlement (UE) 2024/1689 ») ou arrêt (« C-131/12 ») |
 | `rechercher_droit_ue` | Recherche plein texte dans les règlements, directives, traités et la Charte |
 | `rechercher_jurisprudence_ue` | Recherche dans les arrêts de la CJUE et du Tribunal |
+| `liens_droit_ue_france` | Textes et articles français qui transposent ou citent un acte de l'UE, et actes européens liés à un article français (mesures déclarées à l'Union et citations expresses, liste non exhaustive) |
 | `analyser_conformite` | Pré-analyse de conformité d'un projet (RGPD, cookies, vente en ligne, abonnements, IA, DSA, droit d'auteur...) : obligations probables, question à vérifier et texte à lire pour chacune |
 | `etat_base` | Comptes et date de mise à jour de chaque base |
 

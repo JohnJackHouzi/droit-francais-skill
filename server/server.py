@@ -30,7 +30,7 @@ PROTOCOLE OBLIGATOIRE
 7. Si la base ne contient pas la réponse, le dire. Séparer ce que dit le texte (cité) de l'interprétation (signalée comme telle).
 8. Information juridique, pas conseil : renvoyer vers Légifrance pour la version faisant foi et vers un avocat pour un cas concret.
 9. Pour savoir si un projet est conforme, appeler d'abord analyser_conformite, puis lire chaque texte listé.
-10. Pour une question touchant au droit de l'UE (données personnelles, IA, plateformes, consommation, droit d'auteur), croiser le texte européen, sa transposition ou son application en droit français et la jurisprudence (CJUE et juridictions françaises).
+10. Pour une question touchant au droit de l'UE (données personnelles, IA, plateformes, consommation, droit d'auteur), croiser le texte européen, sa transposition ou son application en droit français (liens_droit_ue_france) et la jurisprudence (CJUE et juridictions françaises).
 Limites : base figée à la dernière mise à jour DILA (voir etat_base) ; droit de l'UE limité au périmètre chargé (voir etat_base) et versions consolidées sans valeur officielle ; cours d'appel jusqu'à fin 2023 ; certaines délibérations CNIL sans texte ; jurisprudence non exhaustive (seules les décisions diffusées par la DILA)."""
 
 _hosts = [h for h in os.environ.get("DROIT_ALLOWED_HOSTS", "").split(",") if h]
@@ -156,6 +156,15 @@ async def rechercher_jurisprudence_ue(requete: str, du: str = "", au: str = "", 
     return await run("search_eu.py", "recherche", *opts(q=requete, type="jurisprudence", du=du, au=au,
                                                         tri=tri if tri in ("pertinence", "date") else "pertinence",
                                                         limit=min(max(limite, 1), 30)))
+
+
+@mcp.tool()
+async def liens_droit_ue_france(reference: str, numero: str = "", source: str = "", limite: int = 15) -> str:
+    """Liens entre droit de l'UE et droit français. Sans numero : reference est un acte européen (CELEX, RGPD, « directive 2019/770 »...) et on obtient les textes et articles français qui le transposent ou le citent. Avec numero : reference est un code (« Code de la consommation ») et numero un article (« L217-4 ») : on obtient les actes européens liés. source : transposition (mesures déclarées à l'Union) ou mention (article qui cite l'acte). Liste non exhaustive : seuls sont recensés les rattachements déclarés à l'Union et les citations expresses."""
+    if numero or re.match(r"^(LEGI|JORF|KALI)(TEXT|ARTI)\d{12}$", reference.strip()):
+        return await run("search_liens.py", "fr", reference, *([numero] if numero else []))
+    return await run("search_liens.py", "ue", reference, *opts(source=source if source in ("transposition", "mention") else "",
+                                                               limite=min(max(limite, 1), 40)))
 
 
 @mcp.tool()

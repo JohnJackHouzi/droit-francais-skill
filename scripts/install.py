@@ -175,6 +175,14 @@ def mettre_a_jour():
             run(script)
         except subprocess.CalledProcessError as exc:
             log("échec %s (code %s), nouvel essai au prochain passage" % (script, exc.returncode))
+    liens = os.path.join(os.environ.get("DROIT_DATA", "/data"), "liens.sqlite")
+    if time.gmtime().tm_wday == 6 or not os.path.exists(liens):
+        cmd = [sys.executable, "-I", os.path.join(HERE, "build_liens.py")]
+        log("lance build_liens.py (priorité basse)")
+        try:
+            subprocess.run(cmd, check=True, preexec_fn=lambda: os.nice(19))
+        except subprocess.CalledProcessError as exc:
+            log("échec build_liens.py (code %s), nouvel essai au prochain passage" % exc.returncode)
 
 
 def attendre(heure):
