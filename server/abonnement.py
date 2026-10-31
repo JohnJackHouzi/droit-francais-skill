@@ -21,6 +21,8 @@ CENTIMES = int(round(float(PRIX.replace(",", ".")) * 100))
 ESSAI_PAR_JOUR = int(os.environ.get("DROIT_ESSAI_PAR_JOUR", "20"))
 PLAFOND_ABONNE = int(os.environ.get("DROIT_PLAFOND_ABONNE", "500"))
 PLAFOND_PRO = int(os.environ.get("DROIT_PLAFOND_PRO", "3000"))
+# Abonnés sans plafond quotidien (le propriétaire) : e-mails ou identifiants d'abonnement, séparés par des virgules.
+ILLIMITES = {x.strip().lower() for x in os.environ.get("DROIT_ILLIMITES", "").split(",") if x.strip()}
 SECRET = os.environ.get("DROIT_SECRET", "").encode()
 STRIPE_CLE = os.environ.get("DROIT_STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK = os.environ.get("DROIT_STRIPE_WEBHOOK_SECRET", "")
@@ -194,6 +196,13 @@ def consommer_essai(ip, n=1):
         c.execute("INSERT INTO essais (ip, jour, n) VALUES (?, ?, ?) ON CONFLICT(ip, jour) DO UPDATE SET n = n + ?",
                   (h, jour, n, n))
         return True, deja + n
+
+
+def illimite(row):
+    """Vrai si l'abonné figure dans DROIT_ILLIMITES (par e-mail ou identifiant d'abonnement)."""
+    if not ILLIMITES or row is None:
+        return False
+    return any(str(row[k] or "").lower() in ILLIMITES for k in ("email", "abonnement") if k in row.keys())
 
 
 def consommer_abonne(abonnement, n=1, plafond=None):

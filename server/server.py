@@ -309,7 +309,9 @@ class Garde:
                 ids = appels_outils(corps)
                 if ids and abonne is not None and abonne["statut"] != "actif":
                     return await json_brut(send, abonnement.json_rpc_erreur(ids, MESSAGES_STATUT[abonne["statut"]] % abonnement.SITE))
-                if ids and abonne is not None:
+                if ids and abonne is not None and abonnement.illimite(abonne):
+                    pass
+                elif ids and abonne is not None:
                     ok, _ = await asyncio.get_running_loop().run_in_executor(
                         None, abonnement.consommer_abonne, abonne["abonnement"], len(ids), abonnement.offre_de(abonne)["plafond"])
                     if not ok:
