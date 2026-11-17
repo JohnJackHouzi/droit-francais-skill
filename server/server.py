@@ -688,7 +688,6 @@ def routes_abonnement(page):
                                      info="Assistants déconnectés (%d jeton(s) supprimé(s)). Reconnectez-les quand vous voulez." % n))
 
     return [
-        Route("/.well-known/oauth-protected-resource", meta_ressource, methods=["GET", "OPTIONS"]),
         Route("/.well-known/oauth-protected-resource/abonne/mcp", meta_ressource, methods=["GET", "OPTIONS"]),
         Route("/.well-known/oauth-authorization-server", meta_serveur, methods=["GET", "OPTIONS"]),
         Route("/.well-known/openid-configuration", meta_serveur, methods=["GET", "OPTIONS"]),
